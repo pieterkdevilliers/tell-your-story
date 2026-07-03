@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import type { CurrentUser } from "~/types/auth"
+import type { CurrentUser, InviteRead, UserType } from "~/types/auth"
 
 definePageMeta({ middleware: "auth" })
 
@@ -8,26 +8,46 @@ const { apiFetch } = useApi()
 const toast = useToast()
 
 const users = ref<CurrentUser[]>([])
+const invites = ref<InviteRead[]>([])
 const isCreateOpen = ref(false)
+const isInviteOpen = ref(false)
 const editingUser = ref<CurrentUser | null>(null)
 
 const isOwner = computed(() => auth.user?.role === "owner")
+const hasStoryteller = computed(() => users.value.some((u) => u.user_type === "storyteller"))
+const isStoryRequester = computed(() => auth.user?.user_type === "story_requester")
+const canInvite = computed(() => auth.user?.user_type !== "viewer")
+const canInviteStoryteller = computed(() => isStoryRequester.value && !hasStoryteller.value)
+const canInviteViewer = computed(() => hasStoryteller.value && canInvite.value)
 
 const columns = [
   { accessorKey: "email", header: "Email" },
   { accessorKey: "role", header: "Role" },
+  { accessorKey: "user_type", header: "Type" },
   { accessorKey: "is_active", header: "Active" },
   { accessorKey: "id", header: "" },
 ]
 
+const userTypeLabels: Record<UserType, string> = {
+  storyteller: "Storyteller",
+  story_requester: "Story requester",
+  viewer: "Viewer",
+}
+
 async function loadUsers() {
   users.value = await apiFetch<CurrentUser[]>("/users")
+}
+
+async function loadInvites() {
+  if (!canInvite.value) return
+  invites.value = await apiFetch<InviteRead[]>("/invites")
 }
 
 async function handleCreate(payload: {
   email: string
   password: string
   role: string
+  user_type: string
 }) {
   try {
     await apiFetch("/users", { method: "POST", body: payload })
@@ -43,11 +63,15 @@ async function handleUpdate(payload: {
   email: string
   password: string
   role: string
+  user_type: string
 }) {
   if (!editingUser.value) return
   const body: Record<string, unknown> = { email: payload.email }
   if (payload.password) body.password = payload.password
-  if (isOwner.value) body.role = payload.role
+  if (isOwner.value) {
+    body.role = payload.role
+    body.user_type = payload.user_type
+  }
 
   try {
     await apiFetch(`/users/${editingUser.value.id}`, { method: "PATCH", body })
@@ -73,7 +97,19 @@ async function handleDelete(user: CurrentUser) {
   }
 }
 
+async function handleInvite(payload: { email: string; user_type: UserType }) {
+  try {
+    await apiFetch("/invites", { method: "POST", body: payload })
+    isInviteOpen.value = false
+    await loadInvites()
+    toast.add({ title: "Invite sent", color: "success" })
+  } catch {
+    toast.add({ title: "Could not send invite", color: "error" })
+  }
+}
+
 await loadUsers()
+await loadInvites()
 </script>
 
 <template>
@@ -85,9 +121,20 @@ await loadUsers()
         </h1>
         <p class="text-sm text-(--ui-text-muted)">Manage who has access to this account.</p>
       </div>
-      <UButton v-if="isOwner" icon="i-lucide-plus" @click="isCreateOpen = true">
-        Add user
-      </UButton>
+      <div class="flex gap-2">
+        <UButton
+          v-if="canInviteStoryteller || canInviteViewer"
+          color="neutral"
+          variant="outline"
+          icon="i-lucide-send"
+          @click="isInviteOpen = true"
+        >
+          Invite
+        </UButton>
+        <UButton v-if="isOwner" icon="i-lucide-plus" @click="isCreateOpen = true">
+          Add user
+        </UButton>
+      </div>
     </div>
 
     <UCard :ui="{ body: 'p-0 sm:p-0' }">
@@ -98,6 +145,12 @@ await loadUsers()
             variant="subtle"
           >
             {{ row.original.role }}
+          </UBadge>
+        </template>
+
+        <template #user_type-cell="{ row }">
+          <UBadge color="neutral" variant="outline">
+            {{ userTypeLabels[row.original.user_type] }}
           </UBadge>
         </template>
 
@@ -134,9 +187,39 @@ await loadUsers()
       </UTable>
     </UCard>
 
+    <UCard v-if="canInvite && invites.length" :ui="{ body: 'p-0 sm:p-0' }">
+      <template #header>
+        <p class="text-sm font-medium text-(--ui-text-highlighted)">Pending invites</p>
+      </template>
+      <UTable
+        :data="invites"
+        :columns="[
+          { accessorKey: 'email', header: 'Email' },
+          { accessorKey: 'invited_user_type', header: 'Invited as' },
+          { accessorKey: 'expires_at', header: 'Expires' },
+        ]"
+      >
+        <template #invited_user_type-cell="{ row }">
+          <UBadge color="neutral" variant="outline">
+            {{ userTypeLabels[row.original.invited_user_type] }}
+          </UBadge>
+        </template>
+        <template #expires_at-cell="{ row }">
+          {{ new Date(row.original.expires_at).toLocaleDateString() }}
+        </template>
+      </UTable>
+    </UCard>
+
     <UModal v-model:open="isCreateOpen" title="Add user">
       <template #body>
-        <UserForm mode="create" :is-owner="isOwner" @submit="handleCreate" @cancel="isCreateOpen = false" />
+        <UserForm
+          mode="create"
+          :is-owner="isOwner"
+          :is-story-requester="isStoryRequester"
+          :has-storyteller="hasStoryteller"
+          @submit="handleCreate"
+          @cancel="isCreateOpen = false"
+        />
       </template>
     </UModal>
 
@@ -146,10 +229,24 @@ await loadUsers()
           v-if="editingUser"
           mode="edit"
           :is-owner="isOwner"
+          :is-story-requester="isStoryRequester"
+          :has-storyteller="hasStoryteller"
           :initial-email="editingUser.email"
           :initial-role="editingUser.role"
+          :initial-user-type="editingUser.user_type"
           @submit="handleUpdate"
           @cancel="editingUser = null"
+        />
+      </template>
+    </UModal>
+
+    <UModal v-model:open="isInviteOpen" title="Invite someone">
+      <template #body>
+        <InviteForm
+          :can-invite-storyteller="canInviteStoryteller"
+          :can-invite-viewer="canInviteViewer"
+          @submit="handleInvite"
+          @cancel="isInviteOpen = false"
         />
       </template>
     </UModal>

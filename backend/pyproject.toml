@@ -1,5 +1,5 @@
 [project]
-name = "daily-tasks-backend"
+name = "tell-your-story-backend"
 version = "0.1.0"
 description = "Add your description here"
 readme = "README.md"

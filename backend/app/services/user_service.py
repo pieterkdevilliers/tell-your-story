@@ -9,6 +9,7 @@ from app.services.exceptions import (
     LastOwnerError,
     UserNotFoundError,
 )
+from app.services.user_type_policy import validate_user_type_assignment
 
 
 async def list_users(db: AsyncSession, account_id: int) -> list[User]:
@@ -29,15 +30,20 @@ async def _email_taken(db: AsyncSession, account_id: int, email: str) -> bool:
     return (await db.execute(stmt)).scalar_one_or_none() is not None
 
 
-async def create_user(db: AsyncSession, account_id: int, data: UserCreate) -> User:
+async def create_user(
+    db: AsyncSession, account_id: int, actor: User, data: UserCreate
+) -> User:
     if await _email_taken(db, account_id, data.email):
         raise EmailAlreadyExistsError()
+
+    await validate_user_type_assignment(db, account_id, actor.user_type, data.user_type)
 
     user = User(
         account_id=account_id,
         email=data.email,
         hashed_password=hash_password(data.password),
         role=data.role,
+        user_type=data.user_type,
     )
     db.add(user)
     await db.commit()
@@ -46,7 +52,7 @@ async def create_user(db: AsyncSession, account_id: int, data: UserCreate) -> Us
 
 
 async def update_user(
-    db: AsyncSession, account_id: int, user_id: int, data: UserUpdate
+    db: AsyncSession, account_id: int, actor: User, user_id: int, data: UserUpdate
 ) -> User:
     user = await get_user(db, account_id, user_id)
 
@@ -61,6 +67,15 @@ async def update_user(
         user.role = data.role
     if data.is_active is not None:
         user.is_active = data.is_active
+    if data.user_type is not None and data.user_type != user.user_type:
+        await validate_user_type_assignment(
+            db,
+            account_id,
+            actor.user_type,
+            data.user_type,
+            exclude_user_id=user_id,
+        )
+        user.user_type = data.user_type
 
     await db.commit()
     await db.refresh(user)

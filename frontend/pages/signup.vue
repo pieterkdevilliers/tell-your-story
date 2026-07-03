@@ -1,11 +1,25 @@
 <script setup lang="ts">
-import type { CurrentAccount, CurrentUser } from "~/types/auth"
+import type { CurrentAccount, CurrentUser, SignupUserType } from "~/types/auth"
 
 const state = reactive({
   accountName: "",
   email: "",
   password: "",
+  userType: "" as SignupUserType | "",
 })
+
+const userTypeOptions = [
+  {
+    label: "I want to tell my own story",
+    description: "Answer questions about your own life.",
+    value: "storyteller",
+  },
+  {
+    label: "I'm setting this up for someone else",
+    description: "e.g. inviting a parent to tell their story.",
+    value: "story_requester",
+  },
+]
 
 const errorMessage = ref("")
 const isSubmitting = ref(false)
@@ -27,6 +41,7 @@ async function handleSubmit() {
         account_name: state.accountName,
         email: state.email,
         password: state.password,
+        user_type: state.userType,
       },
     })
     auth.setSession(response.access_token, response.user, response.account)
@@ -58,6 +73,10 @@ async function handleSubmit() {
           variant="subtle"
           :title="errorMessage"
         />
+
+        <UFormField label="How will you use Tell Your Story?" name="userType" required>
+          <URadioGroup v-model="state.userType" :items="userTypeOptions" value-key="value" />
+        </UFormField>
 
         <UFormField label="Account name" name="accountName" required>
           <UInput v-model="state.accountName" class="w-full" autocomplete="organization" />

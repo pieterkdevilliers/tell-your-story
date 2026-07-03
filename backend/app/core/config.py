@@ -14,6 +14,11 @@ FRONTEND_URL = os.environ.get("FRONTEND_URL", "http://localhost:3014")
 PASSWORD_RESET_TOKEN_EXPIRE_MINUTES = int(
     os.environ.get("PASSWORD_RESET_TOKEN_EXPIRE_MINUTES", "60")
 )
+# Invites sit unread far longer than password resets, so they get a much
+# longer default lifetime (7 days) rather than reusing the reset window.
+INVITE_TOKEN_EXPIRE_MINUTES = int(
+    os.environ.get("INVITE_TOKEN_EXPIRE_MINUTES", "10080")
+)
 
 # Optional: if unset, the email service logs reset emails instead of
 # sending them via SES. AWS credentials themselves are not read here —

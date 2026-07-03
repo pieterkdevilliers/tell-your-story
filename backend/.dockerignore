@@ -5,5 +5,5 @@ __pycache__/
 .ruff_cache/
 .coverage
 htmlcov/
-daily_tasks.db
+tell_your_story.db
 .git/

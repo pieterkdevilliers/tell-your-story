@@ -9,7 +9,11 @@ from app.services import user_service
 from app.services.exceptions import (
     EmailAlreadyExistsError,
     LastOwnerError,
+    NoStorytellerYetError,
+    StoryRequesterNotAllowedError,
+    StorytellerAlreadyExistsError,
     UserNotFoundError,
+    UserTypeNotAllowedError,
 )
 
 router = APIRouter()
@@ -42,9 +46,28 @@ async def create_user(
     db: AsyncSession = Depends(get_db),
 ):
     try:
-        return await user_service.create_user(db, current_user.account_id, data)
+        return await user_service.create_user(
+            db, current_user.account_id, current_user, data
+        )
     except EmailAlreadyExistsError:
         raise HTTPException(status_code=status.HTTP_409_CONFLICT)
+    except StoryRequesterNotAllowedError:
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail="story_requester cannot be created here",
+        )
+    except UserTypeNotAllowedError:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN)
+    except StorytellerAlreadyExistsError:
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail="This account already has a storyteller",
+        )
+    except NoStorytellerYetError:
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail="Add a storyteller before adding viewers",
+        )
 
 
 @router.patch("/{user_id}", response_model=UserRead)
@@ -63,15 +86,34 @@ async def update_user(
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN)
     if data.is_active is not None and not is_owner:
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN)
+    if data.user_type is not None and not is_owner:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN)
 
     try:
         return await user_service.update_user(
-            db, current_user.account_id, user_id, data
+            db, current_user.account_id, current_user, user_id, data
         )
     except UserNotFoundError:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND)
     except EmailAlreadyExistsError:
         raise HTTPException(status_code=status.HTTP_409_CONFLICT)
+    except StoryRequesterNotAllowedError:
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail="story_requester cannot be set here",
+        )
+    except UserTypeNotAllowedError:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN)
+    except StorytellerAlreadyExistsError:
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail="This account already has a storyteller",
+        )
+    except NoStorytellerYetError:
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail="Add a storyteller before adding viewers",
+        )
 
 
 @router.delete("/{user_id}", status_code=status.HTTP_204_NO_CONTENT)

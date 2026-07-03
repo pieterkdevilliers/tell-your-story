@@ -4,19 +4,22 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.api.deps import get_current_user
 from app.core.security import create_access_token
 from app.db.session import get_db
-from app.models.user import User
+from app.models.user import User, UserType
 from app.schemas.auth import (
     AccountChoice,
+    AccountMembership,
     LoginRequest,
     LoginResponse,
     MeResponse,
     SignupRequest,
     SignupResponse,
+    SwitchAccountRequest,
 )
 from app.schemas.common import MessageResponse
 from app.schemas.password_reset import PasswordResetConfirm, PasswordResetRequest
 from app.services import account_service, auth_service, password_reset_service
 from app.services.exceptions import (
+    AccountNotAccessibleError,
     AmbiguousAccountError,
     InvalidCredentialsError,
     InvalidResetTokenError,
@@ -28,7 +31,7 @@ router = APIRouter()
 @router.post("/signup", response_model=SignupResponse)
 async def signup(data: SignupRequest, db: AsyncSession = Depends(get_db)):
     account, owner = await account_service.create_account_with_owner(
-        db, data.account_name, data.email, data.password
+        db, data.account_name, data.email, data.password, UserType(data.user_type)
     )
     token = create_access_token(owner.id, account.id, owner.role.value)
     return SignupResponse(account=account, user=owner, access_token=token)
@@ -67,6 +70,42 @@ async def me(
 ):
     await db.refresh(current_user, attribute_names=["account"])
     return MeResponse(user=current_user, account=current_user.account)
+
+
+@router.get("/accounts", response_model=list[AccountMembership])
+async def list_accounts(
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    memberships = await auth_service.list_accounts_for_email(db, current_user.email)
+    return [
+        AccountMembership(
+            id=member.account.id,
+            name=member.account.name,
+            role=member.role,
+            user_type=member.user_type,
+            is_current=member.account_id == current_user.account_id,
+        )
+        for member in memberships
+    ]
+
+
+@router.post("/switch-account", response_model=SignupResponse)
+async def switch_account(
+    data: SwitchAccountRequest,
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    try:
+        user = await auth_service.switch_account(
+            db, current_user.email, data.account_id
+        )
+    except AccountNotAccessibleError:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND)
+
+    await db.refresh(user, attribute_names=["account"])
+    token = create_access_token(user.id, user.account_id, user.role.value)
+    return SignupResponse(account=user.account, user=user, access_token=token)
 
 
 @router.post("/password-reset/request", response_model=MessageResponse)

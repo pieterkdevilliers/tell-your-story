@@ -5,11 +5,12 @@ services:
       target: dev
     volumes:
       - ./backend:/app
+      - /app/.venv
       - backend_db:/app/data
     ports:
       - "8014:8014"
     environment:
-      DATABASE_URL: sqlite+aiosqlite:////app/data/daily_tasks.db
+      DATABASE_URL: sqlite+aiosqlite:////app/data/tell_your_story.db
       JWT_SECRET_KEY: ${JWT_SECRET_KEY:-dev-secret-change-me}
       CORS_ORIGINS: http://localhost:3014
       FRONTEND_URL: http://localhost:3014
@@ -25,6 +26,7 @@ services:
     volumes:
       - ./frontend:/app
       - /app/node_modules
+      - /app/.nuxt
     ports:
       - "3014:3014"
     environment:

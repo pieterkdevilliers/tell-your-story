@@ -3,7 +3,9 @@ from collections.abc import AsyncGenerator
 
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
 
-DATABASE_URL = os.environ.get("DATABASE_URL", "sqlite+aiosqlite:///./daily_tasks.db")
+DATABASE_URL = os.environ.get(
+    "DATABASE_URL", "sqlite+aiosqlite:///./tell_your_story.db"
+)
 
 engine = create_async_engine(DATABASE_URL, echo=True)
 

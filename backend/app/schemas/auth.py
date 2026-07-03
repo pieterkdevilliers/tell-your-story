@@ -1,15 +1,19 @@
-from typing import Optional
+from typing import Literal, Optional
 
 from pydantic import BaseModel, EmailStr
 
+from app.models.user import AccountRole, UserType
 from app.schemas.account import AccountRead
 from app.schemas.user import UserRead
+
+SignupUserType = Literal["storyteller", "story_requester"]
 
 
 class SignupRequest(BaseModel):
     account_name: str
     email: EmailStr
     password: str
+    user_type: SignupUserType
 
 
 class SignupResponse(BaseModel):
@@ -41,3 +45,15 @@ class LoginResponse(BaseModel):
 class MeResponse(BaseModel):
     user: UserRead
     account: AccountRead
+
+
+class AccountMembership(BaseModel):
+    id: int
+    name: str
+    role: AccountRole
+    user_type: UserType
+    is_current: bool
+
+
+class SwitchAccountRequest(BaseModel):
+    account_id: int

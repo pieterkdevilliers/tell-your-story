@@ -1,6 +1,22 @@
-# Daily Tasks — Full-Stack Starter
+# Tell Your Story
 
-A production-ready monorepo starter for full-stack web apps built with **FastAPI** (Python) and **Nuxt 3** (Vue). Ships with async SQLite via SQLAlchemy + Alembic migrations, Pinia state management, multi-stage Docker builds, and a dev environment with hot reload.
+Tell Your Story is a web app that helps people capture and share their life stories through guided questions. Inspired by prompted memoir books such as *Dad, Tell Me Your Story*, it turns a set of thoughtful prompts into a lasting, shareable memoir — without anyone having to stare down a blank page.
+
+Built with **FastAPI** (Python) on the backend and **Nuxt 3** (Vue) on the frontend, on top of async SQLite via SQLAlchemy + Alembic migrations, Pinia state management, multi-stage Docker builds, and a dev environment with hot reload.
+
+## Concept
+
+Not everyone finds it easy to sit down and write their memoirs unprompted. Tell Your Story solves this by offering a guided question flow: the storyteller answers one question at a time, in whichever format suits them, and the app assembles the results into a polished, keepsake memoir.
+
+### Core user flows
+
+- **Two account types on signup** — sign up as a **Storyteller**, answering questions about your own life, or as a **Story Requester**, setting up an account on behalf of someone else (for example, a child inviting a parent to be the storyteller).
+- **Answering questions** — the storyteller is shown one question at a time and can respond by text, audio recording, or video recording.
+- **A personal memoir** — once complete, the storyteller can generate a PDF memoir. AI transcribes any audio/video answers and compiles everything into a formatted, personal memoir book.
+- **Default question set** — every new account starts with a default set of 40+ life story questions.
+- **Customisable question flow** — the account owner can delete questions and add their own, tailoring the flow to what matters to them.
+- **AI follow-up questions** *(future feature)* — the app will use AI to suggest contextual follow-up questions based on the answers already given.
+- **Story sharing** — once a story is complete, the storyteller can invite viewers, who can watch video answers, listen to audio, or read/download the PDF memoir.
 
 ---
 
@@ -25,7 +41,7 @@ A production-ready monorepo starter for full-stack web apps built with **FastAPI
 ## Project Structure
 
 ```
-daily-tasks/
+tell-your-story/
 ├── backend/                        # FastAPI Python service
 │   ├── app/
 │   │   ├── main.py                 # FastAPI app entry point + lifespan
@@ -136,7 +152,7 @@ The frontend runs the pre-built Nuxt output (`node .output/server/index.mjs`). T
 
 | Variable | Default | Description |
 |----------|---------|-------------|
-| `DATABASE_URL` | `sqlite+aiosqlite:///./daily_tasks.db` | SQLAlchemy async database URL |
+| `DATABASE_URL` | `sqlite+aiosqlite:///./tell_your_story.db` | SQLAlchemy async database URL |
 | `JWT_SECRET_KEY` | none (required) | Secret used to sign/verify JWT access tokens. No insecure default — must be set explicitly. |
 | `JWT_ALGORITHM` | `HS256` | JWT signing algorithm |
 | `JWT_EXPIRE_MINUTES` | `60` | Access token lifetime in minutes |

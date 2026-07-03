@@ -7,10 +7,16 @@ def _unique_email() -> str:
     return f"user-{uuid.uuid4().hex[:8]}@example.com"
 
 
-async def _create_member(client: AsyncClient, owner_headers: dict) -> dict:
+async def _create_member(
+    client: AsyncClient, owner_headers: dict, user_type: str = "storyteller"
+) -> dict:
     response = await client.post(
         "/users",
-        json={"email": _unique_email(), "password": "supersecret1"},
+        json={
+            "email": _unique_email(),
+            "password": "supersecret1",
+            "user_type": user_type,
+        },
         headers=owner_headers,
     )
     assert response.status_code == 201
@@ -28,6 +34,7 @@ async def test_list_users_returns_only_own_account(
 async def test_owner_creates_member(client: AsyncClient, auth_headers: dict):
     member = await _create_member(client, auth_headers)
     assert member["role"] == "member"
+    assert member["user_type"] == "storyteller"
 
     listing = await client.get("/users", headers=auth_headers)
     assert len(listing.json()) == 2
@@ -42,10 +49,87 @@ async def test_create_user_requires_owner(client: AsyncClient, auth_headers: dic
 
     response = await client.post(
         "/users",
-        json={"email": _unique_email(), "password": "supersecret1"},
+        json={
+            "email": _unique_email(),
+            "password": "supersecret1",
+            "user_type": "viewer",
+        },
         headers=member_headers,
     )
     assert response.status_code == 403
+
+
+async def test_create_user_rejects_story_requester_type(
+    client: AsyncClient, auth_headers: dict
+):
+    response = await client.post(
+        "/users",
+        json={
+            "email": _unique_email(),
+            "password": "supersecret1",
+            "user_type": "story_requester",
+        },
+        headers=auth_headers,
+    )
+    assert response.status_code == 422
+
+
+async def test_create_storyteller_requires_story_requester_actor(
+    client: AsyncClient,
+):
+    signup = await client.post(
+        "/auth/signup",
+        json={
+            "account_name": "Acme",
+            "email": _unique_email(),
+            "password": "supersecret1",
+            "user_type": "storyteller",
+        },
+    )
+    owner_headers = {"Authorization": f"Bearer {signup.json()['access_token']}"}
+
+    response = await client.post(
+        "/users",
+        json={
+            "email": _unique_email(),
+            "password": "supersecret1",
+            "user_type": "storyteller",
+        },
+        headers=owner_headers,
+    )
+    assert response.status_code == 403
+
+
+async def test_create_second_storyteller_conflicts(
+    client: AsyncClient, auth_headers: dict
+):
+    await _create_member(client, auth_headers, user_type="storyteller")
+
+    response = await client.post(
+        "/users",
+        json={
+            "email": _unique_email(),
+            "password": "supersecret1",
+            "user_type": "storyteller",
+        },
+        headers=auth_headers,
+    )
+    assert response.status_code == 409
+
+
+async def test_create_viewer_before_storyteller_exists_conflicts(
+    client: AsyncClient, auth_headers: dict
+):
+    response = await client.post(
+        "/users",
+        json={
+            "email": _unique_email(),
+            "password": "supersecret1",
+            "user_type": "viewer",
+        },
+        headers=auth_headers,
+    )
+    assert response.status_code == 409
 
 
 async def test_update_own_profile(client: AsyncClient, auth_headers: dict):
@@ -91,6 +175,23 @@ async def test_member_cannot_change_own_role(client: AsyncClient, auth_headers: 
     assert response.status_code == 403
 
 
+async def test_member_cannot_change_own_user_type(
+    client: AsyncClient, auth_headers: dict
+):
+    member = await _create_member(client, auth_headers)
+    member_login = await client.post(
+        "/auth/login", json={"email": member["email"], "password": "supersecret1"}
+    )
+    member_headers = {"Authorization": f"Bearer {member_login.json()['access_token']}"}
+
+    response = await client.patch(
+        f"/users/{member['id']}",
+        json={"user_type": "viewer"},
+        headers=member_headers,
+    )
+    assert response.status_code == 403
+
+
 async def test_owner_deletes_member(client: AsyncClient, auth_headers: dict):
     member = await _create_member(client, auth_headers)
     response = await client.delete(f"/users/{member['id']}", headers=auth_headers)
@@ -107,6 +208,7 @@ async def test_cross_account_isolation(client: AsyncClient, auth_headers: dict):
             "account_name": "Other Co",
             "email": _unique_email(),
             "password": "supersecret1",
+            "user_type": "story_requester",
         },
     )
     other_user_id = other_signup.json()["user"]["id"]

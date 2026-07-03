@@ -2,11 +2,16 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.security import hash_password
 from app.models.account import Account
-from app.models.user import AccountRole, User
+from app.models.user import AccountRole, User, UserType
+from app.services import question_service
 
 
 async def create_account_with_owner(
-    db: AsyncSession, account_name: str, email: str, password: str
+    db: AsyncSession,
+    account_name: str,
+    email: str,
+    password: str,
+    user_type: UserType,
 ) -> tuple[Account, User]:
     account = Account(name=account_name)
     db.add(account)
@@ -17,8 +22,10 @@ async def create_account_with_owner(
         email=email,
         hashed_password=hash_password(password),
         role=AccountRole.OWNER,
+        user_type=user_type,
     )
     db.add(owner)
+    await question_service.seed_default_questions(db, account.id)
 
     await db.commit()
     await db.refresh(account)

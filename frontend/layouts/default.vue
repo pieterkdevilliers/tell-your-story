@@ -12,14 +12,15 @@ function handleLogout() {
     <header class="border-b border-(--ui-border) bg-(--ui-bg)">
       <UContainer class="flex h-16 items-center justify-between">
         <NuxtLink to="/" class="text-lg font-semibold text-(--ui-text-highlighted)">
-          Daily Tasks
+          Tell Your Story
         </NuxtLink>
 
         <nav class="flex items-center gap-3">
           <template v-if="auth.isAuthenticated">
-            <span class="hidden text-sm text-(--ui-text-muted) sm:inline">
-              {{ auth.account?.name }}
-            </span>
+            <AccountSwitcher />
+            <UButton to="/questions" color="neutral" variant="ghost" size="sm">
+              Questions
+            </UButton>
             <UButton to="/users" color="neutral" variant="ghost" size="sm">
               Users
             </UButton>

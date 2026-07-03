@@ -16,6 +16,12 @@ class AccountRole(str, enum.Enum):
     MEMBER = "member"
 
 
+class UserType(str, enum.Enum):
+    STORYTELLER = "storyteller"
+    STORY_REQUESTER = "story_requester"
+    VIEWER = "viewer"
+
+
 class User(Base):
     __tablename__ = "users"
     __table_args__ = (
@@ -29,6 +35,7 @@ class User(Base):
     email: Mapped[str] = mapped_column(index=True)
     hashed_password: Mapped[str]
     role: Mapped[AccountRole]
+    user_type: Mapped[UserType]
     is_active: Mapped[bool] = mapped_column(default=True)
     created_at: Mapped[datetime] = mapped_column(server_default=func.now())
     updated_at: Mapped[datetime] = mapped_column(

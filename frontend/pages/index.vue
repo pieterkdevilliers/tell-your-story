@@ -5,7 +5,7 @@ const auth = useAuthStore()
 <template>
   <div class="flex flex-col items-center gap-6 py-16 text-center">
     <h1 class="text-4xl font-bold tracking-tight text-(--ui-text-highlighted)">
-      Daily Tasks
+      Tell Your Story
     </h1>
     <p class="max-w-md text-lg text-(--ui-text-muted)">
       A multi-tenant starter: create an account, invite your team, and manage

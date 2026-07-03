@@ -16,7 +16,9 @@ if config.config_file_name is not None:
 
 # Match db/session.py: migrations must target the same database the app
 # runs against, not the static path in alembic.ini.
-database_url = os.environ.get("DATABASE_URL", "sqlite+aiosqlite:///./daily_tasks.db")
+database_url = os.environ.get(
+    "DATABASE_URL", "sqlite+aiosqlite:///./tell_your_story.db"
+)
 config.set_main_option("sqlalchemy.url", database_url)
 
 target_metadata = Base.metadata

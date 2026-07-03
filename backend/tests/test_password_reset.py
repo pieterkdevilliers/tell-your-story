@@ -39,7 +39,12 @@ async def test_request_existing_email(
     email = _unique_email()
     await client.post(
         "/auth/signup",
-        json={"account_name": "Acme", "email": email, "password": "supersecret1"},
+        json={
+            "account_name": "Acme",
+            "email": email,
+            "password": "supersecret1",
+            "user_type": "story_requester",
+        },
     )
 
     response = await client.post("/auth/password-reset/request", json={"email": email})
@@ -72,7 +77,12 @@ async def test_request_matches_existing_response_message(client: AsyncClient):
     email = _unique_email()
     await client.post(
         "/auth/signup",
-        json={"account_name": "Acme", "email": email, "password": "supersecret1"},
+        json={
+            "account_name": "Acme",
+            "email": email,
+            "password": "supersecret1",
+            "user_type": "story_requester",
+        },
     )
     response = await client.post("/auth/password-reset/request", json={"email": email})
     assert response.json()["message"] == (
@@ -86,11 +96,21 @@ async def test_request_email_matching_two_accounts(
     email = _unique_email()
     await client.post(
         "/auth/signup",
-        json={"account_name": "Acme", "email": email, "password": "supersecret1"},
+        json={
+            "account_name": "Acme",
+            "email": email,
+            "password": "supersecret1",
+            "user_type": "story_requester",
+        },
     )
     await client.post(
         "/auth/signup",
-        json={"account_name": "Globex", "email": email, "password": "supersecret2"},
+        json={
+            "account_name": "Globex",
+            "email": email,
+            "password": "supersecret2",
+            "user_type": "story_requester",
+        },
     )
 
     response = await client.post("/auth/password-reset/request", json={"email": email})
@@ -110,7 +130,12 @@ async def test_confirm_valid_token_updates_password_and_old_fails(
     email = _unique_email()
     await client.post(
         "/auth/signup",
-        json={"account_name": "Acme", "email": email, "password": "supersecret1"},
+        json={
+            "account_name": "Acme",
+            "email": email,
+            "password": "supersecret1",
+            "user_type": "story_requester",
+        },
     )
     await client.post("/auth/password-reset/request", json={"email": email})
     token = _extract_token(captured_emails[0]["body"])
@@ -138,11 +163,21 @@ async def test_confirm_token_shared_across_two_accounts(
     email = _unique_email()
     await client.post(
         "/auth/signup",
-        json={"account_name": "Acme", "email": email, "password": "supersecret1"},
+        json={
+            "account_name": "Acme",
+            "email": email,
+            "password": "supersecret1",
+            "user_type": "story_requester",
+        },
     )
     await client.post(
         "/auth/signup",
-        json={"account_name": "Globex", "email": email, "password": "supersecret2"},
+        json={
+            "account_name": "Globex",
+            "email": email,
+            "password": "supersecret2",
+            "user_type": "story_requester",
+        },
     )
     await client.post("/auth/password-reset/request", json={"email": email})
     token = _extract_token(captured_emails[0]["body"])
@@ -177,7 +212,12 @@ async def test_confirm_expired_token_returns_400(
     email = _unique_email()
     await client.post(
         "/auth/signup",
-        json={"account_name": "Acme", "email": email, "password": "supersecret1"},
+        json={
+            "account_name": "Acme",
+            "email": email,
+            "password": "supersecret1",
+            "user_type": "story_requester",
+        },
     )
     await client.post("/auth/password-reset/request", json={"email": email})
     token = _extract_token(captured_emails[0]["body"])
@@ -197,7 +237,12 @@ async def test_confirm_token_is_single_use(client: AsyncClient, captured_emails)
     email = _unique_email()
     await client.post(
         "/auth/signup",
-        json={"account_name": "Acme", "email": email, "password": "supersecret1"},
+        json={
+            "account_name": "Acme",
+            "email": email,
+            "password": "supersecret1",
+            "user_type": "story_requester",
+        },
     )
     await client.post("/auth/password-reset/request", json={"email": email})
     token = _extract_token(captured_emails[0]["body"])

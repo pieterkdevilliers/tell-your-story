@@ -3,13 +3,14 @@ from typing import Optional
 
 from pydantic import BaseModel, ConfigDict, EmailStr
 
-from app.models.user import AccountRole
+from app.models.user import AccountRole, UserType
 
 
 class UserCreate(BaseModel):
     email: EmailStr
     password: str
     role: AccountRole = AccountRole.MEMBER
+    user_type: UserType
 
 
 class UserUpdate(BaseModel):
@@ -17,6 +18,7 @@ class UserUpdate(BaseModel):
     password: Optional[str] = None
     role: Optional[AccountRole] = None
     is_active: Optional[bool] = None
+    user_type: Optional[UserType] = None
 
 
 class UserRead(BaseModel):
@@ -25,6 +27,7 @@ class UserRead(BaseModel):
     id: int
     email: str
     role: AccountRole
+    user_type: UserType
     is_active: bool
     account_id: int
     created_at: datetime

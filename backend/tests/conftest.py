@@ -51,6 +51,7 @@ async def signed_up_user(client: AsyncClient) -> dict:
             "account_name": f"Account {unique}",
             "email": f"owner-{unique}@example.com",
             "password": "correct-horse-battery-staple",
+            "user_type": "story_requester",
         },
     )
     assert response.status_code == 200
