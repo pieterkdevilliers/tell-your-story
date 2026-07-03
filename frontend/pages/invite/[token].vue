@@ -55,7 +55,7 @@ async function handleSubmit() {
 <template>
   <div class="mx-auto flex max-w-sm flex-col gap-6">
     <div class="text-center">
-      <h1 class="text-2xl font-semibold text-(--ui-text-highlighted)">
+      <h1 class="font-heading text-3xl font-semibold text-gradient-brand">
         You're invited
       </h1>
       <p v-if="preview" class="mt-1 text-sm text-(--ui-text-muted)">

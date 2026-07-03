@@ -23,9 +23,9 @@ function handleLogout() {
 
 <template>
   <div class="min-h-screen bg-(--ui-bg-elevated)">
-    <header class="border-b border-(--ui-border) bg-(--ui-bg)">
+    <header class="bg-brand-gradient shadow-sm">
       <UContainer class="flex h-16 items-center justify-between">
-        <NuxtLink to="/" class="text-lg font-semibold text-(--ui-text-highlighted)">
+        <NuxtLink to="/" class="font-heading text-lg font-semibold tracking-wide text-white">
           Tell Your Story
         </NuxtLink>
 
@@ -34,28 +34,56 @@ function handleLogout() {
             <AccountSwitcher />
             <UButton
               v-if="isStoryteller"
-              color="primary"
+              color="neutral"
               size="sm"
               icon="i-lucide-book-open"
+              class="bg-white text-(--ui-primary) hover:bg-white/90"
               @click="handleTellYourStory"
             >
               Tell Your Story
             </UButton>
-            <UButton to="/questions" color="neutral" variant="ghost" size="sm">
+            <UButton
+              to="/questions"
+              variant="ghost"
+              size="sm"
+              class="text-white hover:bg-white/10"
+            >
               Questions
             </UButton>
-            <UButton to="/users" color="neutral" variant="ghost" size="sm">
+            <UButton
+              to="/users"
+              variant="ghost"
+              size="sm"
+              class="text-white hover:bg-white/10"
+            >
               Users
             </UButton>
-            <UButton color="neutral" variant="outline" size="sm" @click="handleLogout">
+            <UButton
+              variant="outline"
+              size="sm"
+              class="border-white/50 text-white hover:bg-white/10"
+              @click="handleLogout"
+            >
               Log out
             </UButton>
           </template>
           <template v-else>
-            <UButton to="/login" color="neutral" variant="ghost" size="sm">
+            <UButton
+              to="/login"
+              variant="ghost"
+              size="sm"
+              class="text-white hover:bg-white/10"
+            >
               Log in
             </UButton>
-            <UButton to="/signup" color="primary" size="sm">Sign up</UButton>
+            <UButton
+              to="/signup"
+              size="sm"
+              color="neutral"
+              class="bg-white text-(--ui-primary) hover:bg-white/90"
+            >
+              Sign up
+            </UButton>
           </template>
         </nav>
       </UContainer>

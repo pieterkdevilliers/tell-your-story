@@ -65,7 +65,7 @@ await loadQuestions()
 <template>
   <div class="flex flex-col gap-6">
     <div>
-      <h1 class="text-2xl font-semibold text-(--ui-text-highlighted)">Questions</h1>
+      <h1 class="font-heading text-2xl font-semibold text-(--ui-text-highlighted)">Questions</h1>
       <p class="text-sm text-(--ui-text-muted)">
         The questions the storyteller will be asked.
       </p>

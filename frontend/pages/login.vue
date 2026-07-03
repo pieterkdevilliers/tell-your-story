@@ -53,7 +53,7 @@ function chooseAccount(accountId: number) {
 <template>
   <div class="mx-auto flex max-w-sm flex-col gap-6">
     <div class="text-center">
-      <h1 class="text-2xl font-semibold text-(--ui-text-highlighted)">Log in</h1>
+      <h1 class="font-heading text-3xl font-semibold text-gradient-brand">Log in</h1>
       <p class="mt-1 text-sm text-(--ui-text-muted)">Welcome back.</p>
     </div>
 

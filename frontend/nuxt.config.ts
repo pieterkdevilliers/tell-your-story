@@ -5,6 +5,18 @@ export default defineNuxtConfig({
   devServer: { host: "0.0.0.0", port: 3014 },
   modules: ["@pinia/nuxt", "@nuxt/ui"],
   css: ["~/assets/css/main.css"],
+  app: {
+    head: {
+      link: [
+        { rel: "preconnect", href: "https://fonts.googleapis.com" },
+        { rel: "preconnect", href: "https://fonts.gstatic.com", crossorigin: "" },
+        {
+          rel: "stylesheet",
+          href: "https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&family=Roboto+Condensed:wght@500;600;700&display=swap",
+        },
+      ],
+    },
+  },
   runtimeConfig: {
     // Server-only: used for SSR fetches, which run inside the Docker
     // network and must reach the backend via its service name. Falls back

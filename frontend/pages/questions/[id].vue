@@ -95,7 +95,7 @@ function handleAnswerDeleted() {
       </div>
 
       <UCard>
-        <p class="text-xl font-semibold text-(--ui-text-highlighted)">
+        <p class="font-heading text-xl font-semibold text-(--ui-text-highlighted)">
           {{ currentQuestion.text }}
         </p>
       </UCard>

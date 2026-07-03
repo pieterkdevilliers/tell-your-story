@@ -116,7 +116,7 @@ await loadInvites()
   <div class="flex flex-col gap-6">
     <div class="flex items-center justify-between">
       <div>
-        <h1 class="text-2xl font-semibold text-(--ui-text-highlighted)">
+        <h1 class="font-heading text-2xl font-semibold text-(--ui-text-highlighted)">
           {{ auth.account?.name }}
         </h1>
         <p class="text-sm text-(--ui-text-muted)">Manage who has access to this account.</p>

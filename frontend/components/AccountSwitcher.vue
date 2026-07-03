@@ -46,19 +46,16 @@ await loadAccounts()
 </script>
 
 <template>
-  <span
-    v-if="accounts.length <= 1"
-    class="hidden text-sm text-(--ui-text-muted) sm:inline"
-  >
+  <span v-if="accounts.length <= 1" class="hidden text-sm text-white/80 sm:inline">
     {{ auth.account?.name }}
   </span>
 
   <UDropdownMenu v-else :items="items" :content="{ align: 'end' }">
     <UButton
-      color="neutral"
       variant="ghost"
       size="sm"
       trailing-icon="i-lucide-chevron-down"
+      class="text-white hover:bg-white/10"
       :loading="isSwitching"
     >
       {{ auth.account?.name }}
