@@ -2,7 +2,7 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.default_questions import DEFAULT_QUESTIONS
-from app.models.question import Question
+from app.models.question import Question, QuestionCategory
 from app.services.exceptions import QuestionNotFoundError
 
 
@@ -13,8 +13,10 @@ async def list_questions(db: AsyncSession, account_id: int) -> list[Question]:
     return list((await db.execute(stmt)).scalars().all())
 
 
-async def create_question(db: AsyncSession, account_id: int, text: str) -> Question:
-    question = Question(account_id=account_id, text=text)
+async def create_question(
+    db: AsyncSession, account_id: int, category: QuestionCategory, text: str
+) -> Question:
+    question = Question(account_id=account_id, category=category, text=text)
     db.add(question)
     await db.commit()
     await db.refresh(question)
@@ -34,5 +36,6 @@ async def delete_question(db: AsyncSession, account_id: int, question_id: int) -
 
 
 async def seed_default_questions(db: AsyncSession, account_id: int) -> None:
-    for text in DEFAULT_QUESTIONS:
-        db.add(Question(account_id=account_id, text=text))
+    for category, texts in DEFAULT_QUESTIONS.items():
+        for text in texts:
+            db.add(Question(account_id=account_id, category=category, text=text))

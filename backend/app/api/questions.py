@@ -26,7 +26,7 @@ async def create_question(
     db: AsyncSession = Depends(get_db),
 ):
     return await question_service.create_question(
-        db, current_user.account_id, data.text
+        db, current_user.account_id, data.category, data.text
     )
 
 

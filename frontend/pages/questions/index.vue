@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import type { Question } from "~/types/question"
+import type { Question, QuestionCategory } from "~/types/question"
 
 definePageMeta({ middleware: "auth" })
 
@@ -8,26 +8,38 @@ const { apiFetch } = useApi()
 const toast = useToast()
 
 const questions = ref<Question[]>([])
-const isAddOpen = ref(false)
+const addingCategory = ref<QuestionCategory | null>(null)
 const newQuestionText = ref("")
 const isSubmitting = ref(false)
 
 const isOwner = computed(() => auth.user?.role === "owner")
 
+const sections = computed(() =>
+  QUESTION_CATEGORY_ORDER.map((category) => ({
+    category,
+    label: QUESTION_CATEGORY_LABELS[category],
+    questions: questions.value.filter((q) => q.category === category),
+  })).filter((section) => section.questions.length > 0),
+)
+
 async function loadQuestions() {
   questions.value = await apiFetch<Question[]>("/questions")
 }
 
+function openAdd(category: QuestionCategory) {
+  addingCategory.value = category
+  newQuestionText.value = ""
+}
+
 async function handleAdd() {
-  if (!newQuestionText.value.trim()) return
+  if (!addingCategory.value || !newQuestionText.value.trim()) return
   isSubmitting.value = true
   try {
     await apiFetch("/questions", {
       method: "POST",
-      body: { text: newQuestionText.value.trim() },
+      body: { category: addingCategory.value, text: newQuestionText.value.trim() },
     })
-    newQuestionText.value = ""
-    isAddOpen.value = false
+    addingCategory.value = null
     await loadQuestions()
     toast.add({ title: "Question added", color: "success" })
   } catch {
@@ -52,22 +64,35 @@ await loadQuestions()
 
 <template>
   <div class="flex flex-col gap-6">
-    <div class="flex items-center justify-between">
-      <div>
-        <h1 class="text-2xl font-semibold text-(--ui-text-highlighted)">Questions</h1>
-        <p class="text-sm text-(--ui-text-muted)">
-          The questions the storyteller will be asked.
-        </p>
-      </div>
-      <UButton v-if="isOwner" icon="i-lucide-plus" @click="isAddOpen = true">
-        Add question
-      </UButton>
+    <div>
+      <h1 class="text-2xl font-semibold text-(--ui-text-highlighted)">Questions</h1>
+      <p class="text-sm text-(--ui-text-muted)">
+        The questions the storyteller will be asked.
+      </p>
     </div>
 
-    <UCard :ui="{ body: 'p-0 sm:p-0' }">
+    <UCard v-for="section in sections" :key="section.category" :ui="{ body: 'p-0 sm:p-0' }">
+      <template #header>
+        <div class="flex items-center justify-between">
+          <p class="text-sm font-medium text-(--ui-text-highlighted)">
+            {{ section.label }}
+          </p>
+          <UButton
+            v-if="isOwner"
+            color="neutral"
+            variant="ghost"
+            size="sm"
+            icon="i-lucide-plus"
+            @click="openAdd(section.category)"
+          >
+            Add question
+          </UButton>
+        </div>
+      </template>
+
       <ul class="divide-y divide-(--ui-border)">
         <li
-          v-for="(question, index) in questions"
+          v-for="(question, index) in section.questions"
           :key="question.id"
           class="flex items-center justify-between gap-4 px-4 py-3"
         >
@@ -87,14 +112,18 @@ await loadQuestions()
       </ul>
     </UCard>
 
-    <UModal v-model:open="isAddOpen" title="Add question">
+    <UModal
+      :open="!!addingCategory"
+      :title="addingCategory ? `Add question to ${QUESTION_CATEGORY_LABELS[addingCategory]}` : ''"
+      @update:open="(v) => !v && (addingCategory = null)"
+    >
       <template #body>
         <div class="flex flex-col gap-4">
           <UFormField label="Question" name="text" required>
             <UTextarea v-model="newQuestionText" class="w-full" autofocus />
           </UFormField>
           <div class="flex justify-end gap-2 pt-2">
-            <UButton color="neutral" variant="ghost" @click="isAddOpen = false">
+            <UButton color="neutral" variant="ghost" @click="addingCategory = null">
               Cancel
             </UButton>
             <UButton :loading="isSubmitting" @click="handleAdd">Add question</UButton>
