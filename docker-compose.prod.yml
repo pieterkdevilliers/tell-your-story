@@ -1,0 +1,36 @@
+services:
+  backend:
+    build:
+      context: ./backend
+      target: production
+    volumes:
+      - backend_db:/app/data
+    ports:
+      - "8014:8014"
+    environment:
+      DATABASE_URL: sqlite+aiosqlite:////app/data/daily_tasks.db
+      JWT_SECRET_KEY: ${JWT_SECRET_KEY:?JWT_SECRET_KEY must be set in production}
+      CORS_ORIGINS: http://localhost:3014
+      FRONTEND_URL: ${FRONTEND_URL:-http://localhost:3014}
+      SES_FROM_EMAIL: ${SES_FROM_EMAIL:-}
+      AWS_REGION: ${AWS_REGION:-}
+      AWS_ACCESS_KEY_ID: ${AWS_ACCESS_KEY_ID:-}
+      AWS_SECRET_ACCESS_KEY: ${AWS_SECRET_ACCESS_KEY:-}
+    restart: unless-stopped
+
+  frontend:
+    build:
+      context: ./frontend
+      target: production
+    ports:
+      - "3014:3014"
+    environment:
+      NUXT_PUBLIC_API_BASE: http://localhost:8014
+      NUXT_API_BASE_INTERNAL: http://backend:8014
+      PORT: "3014"
+    depends_on:
+      - backend
+    restart: unless-stopped
+
+volumes:
+  backend_db:
