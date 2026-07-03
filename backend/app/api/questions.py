@@ -1,11 +1,12 @@
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.api.deps import get_current_user, require_owner
+from app.api.deps import get_current_user, require_owner, require_storyteller
 from app.db.session import get_db
 from app.models.user import User
+from app.schemas.answer import AnswerRead, AnswerUpsert
 from app.schemas.question import QuestionCreate, QuestionRead
-from app.services import question_service
+from app.services import answer_service, question_service
 from app.services.exceptions import QuestionNotFoundError
 
 router = APIRouter()
@@ -38,5 +39,20 @@ async def delete_question(
 ):
     try:
         await question_service.delete_question(db, current_user.account_id, question_id)
+    except QuestionNotFoundError:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND)
+
+
+@router.put("/{question_id}/answer", response_model=AnswerRead)
+async def upsert_answer(
+    question_id: int,
+    data: AnswerUpsert,
+    current_user: User = Depends(require_storyteller),
+    db: AsyncSession = Depends(get_db),
+):
+    try:
+        return await answer_service.upsert_answer(
+            db, current_user.account_id, question_id, data.text
+        )
     except QuestionNotFoundError:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND)

@@ -1,8 +1,10 @@
 from datetime import datetime
+from typing import Optional
 
 from pydantic import BaseModel, ConfigDict
 
 from app.models.question import QuestionCategory
+from app.schemas.answer import AnswerRead
 
 
 class QuestionCreate(BaseModel):
@@ -18,3 +20,4 @@ class QuestionRead(BaseModel):
     text: str
     account_id: int
     created_at: datetime
+    answer: Optional[AnswerRead] = None

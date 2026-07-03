@@ -5,7 +5,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.security import decode_access_token
 from app.db.session import get_db
-from app.models.user import AccountRole, User
+from app.models.user import AccountRole, User, UserType
 from app.services.exceptions import UserNotFoundError
 from app.services.user_service import get_user
 
@@ -38,5 +38,14 @@ def require_owner(current_user: User = Depends(get_current_user)) -> User:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Only the account owner can perform this action",
+        )
+    return current_user
+
+
+def require_storyteller(current_user: User = Depends(get_current_user)) -> User:
+    if current_user.user_type != UserType.STORYTELLER:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Only the storyteller can answer questions",
         )
     return current_user

@@ -94,11 +94,22 @@ await loadQuestions()
         <li
           v-for="(question, index) in section.questions"
           :key="question.id"
-          class="flex items-center justify-between gap-4 px-4 py-3"
+          class="flex cursor-pointer items-center justify-between gap-4 px-4 py-3 hover:bg-(--ui-bg-elevated)"
+          @click="navigateTo(`/questions/${question.id}`)"
         >
-          <span class="text-sm text-(--ui-text-highlighted)">
+          <span class="flex min-w-0 items-center gap-2 text-sm text-(--ui-text-highlighted)">
             <span class="text-(--ui-text-muted)">{{ index + 1 }}.</span>
-            {{ question.text }}
+            <span class="truncate">{{ question.text }}</span>
+            <UBadge
+              v-if="question.answer"
+              color="success"
+              variant="subtle"
+              size="sm"
+              icon="i-lucide-check"
+              class="shrink-0"
+            >
+              Answered
+            </UBadge>
           </span>
           <UButton
             v-if="isOwner"
@@ -106,7 +117,8 @@ await loadQuestions()
             variant="ghost"
             size="sm"
             icon="i-lucide-trash-2"
-            @click="handleDelete(question)"
+            class="shrink-0"
+            @click.stop="handleDelete(question)"
           />
         </li>
       </ul>

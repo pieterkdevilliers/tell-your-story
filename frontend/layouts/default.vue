@@ -1,5 +1,19 @@
 <script setup lang="ts">
+import type { Question } from "~/types/question"
+
 const auth = useAuthStore()
+const { apiFetch } = useApi()
+
+const isStoryteller = computed(() => auth.user?.user_type === "storyteller")
+
+async function handleTellYourStory() {
+  const questions = await apiFetch<Question[]>("/questions")
+  if (questions.length) {
+    await navigateTo(`/questions/${questions[0].id}`)
+  } else {
+    await navigateTo("/questions")
+  }
+}
 
 function handleLogout() {
   auth.logout()
@@ -18,6 +32,15 @@ function handleLogout() {
         <nav class="flex items-center gap-3">
           <template v-if="auth.isAuthenticated">
             <AccountSwitcher />
+            <UButton
+              v-if="isStoryteller"
+              color="primary"
+              size="sm"
+              icon="i-lucide-book-open"
+              @click="handleTellYourStory"
+            >
+              Tell Your Story
+            </UButton>
             <UButton to="/questions" color="neutral" variant="ghost" size="sm">
               Questions
             </UButton>

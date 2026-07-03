@@ -3,6 +3,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.default_questions import DEFAULT_QUESTIONS
 from app.models.question import Question, QuestionCategory
+from app.services import answer_service
 from app.services.exceptions import QuestionNotFoundError
 
 
@@ -10,7 +11,15 @@ async def list_questions(db: AsyncSession, account_id: int) -> list[Question]:
     stmt = (
         select(Question).where(Question.account_id == account_id).order_by(Question.id)
     )
-    return list((await db.execute(stmt)).scalars().all())
+    questions = list((await db.execute(stmt)).scalars().all())
+
+    answers_by_question_id = await answer_service.get_answers_by_question_ids(
+        db, [q.id for q in questions]
+    )
+    for question in questions:
+        question.answer = answers_by_question_id.get(question.id)
+
+    return questions
 
 
 async def create_question(
