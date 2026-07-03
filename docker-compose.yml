@@ -7,10 +7,12 @@ services:
       - ./backend:/app
       - /app/.venv
       - backend_db:/app/data
+      - backend_media:/app/media
     ports:
       - "8014:8014"
     environment:
       DATABASE_URL: sqlite+aiosqlite:////app/data/tell_your_story.db
+      MEDIA_ROOT: /app/media
       JWT_SECRET_KEY: ${JWT_SECRET_KEY:-dev-secret-change-me}
       CORS_ORIGINS: http://localhost:3014
       FRONTEND_URL: http://localhost:3014
@@ -37,3 +39,4 @@ services:
 
 volumes:
   backend_db:
+  backend_media:

@@ -17,6 +17,9 @@ build/
 *.sqlite
 *.sqlite3
 
+# Locally stored answer recordings (audio/video)
+backend/media/
+
 # pytest
 .pytest_cache/
 .coverage

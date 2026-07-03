@@ -6,4 +6,5 @@ __pycache__/
 .coverage
 htmlcov/
 tell_your_story.db
+media/
 .git/

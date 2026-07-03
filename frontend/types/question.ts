@@ -8,10 +8,13 @@ export type QuestionCategory =
   | "values_beliefs_reflections"
   | "advice_legacy"
 
+export type AnswerType = "text" | "audio" | "video"
+
 export interface Answer {
   id: number
   question_id: number
-  text: string
+  answer_type: AnswerType
+  text?: string | null
   created_at: string
   updated_at: string
 }

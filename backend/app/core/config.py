@@ -26,3 +26,7 @@ INVITE_TOKEN_EXPIRE_MINUTES = int(
 # AWS_SECRET_ACCESS_KEY / AWS_REGION from the environment automatically.
 SES_FROM_EMAIL = os.environ.get("SES_FROM_EMAIL")
 AWS_REGION = os.environ.get("AWS_REGION")
+
+# Local disk path for recorded answer media (audio/video). Production is
+# expected to swap this for S3 — see app/services/storage_service.py.
+MEDIA_ROOT = os.environ.get("MEDIA_ROOT", "./media")

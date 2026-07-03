@@ -1,16 +1,15 @@
 <script setup lang="ts">
-import type { Answer, Question } from "~/types/question"
+import type { Answer, AnswerType, Question } from "~/types/question"
 
 definePageMeta({ middleware: "auth" })
 
 const route = useRoute()
 const auth = useAuthStore()
 const { apiFetch } = useApi()
-const toast = useToast()
 
 const questions = ref<Question[]>([])
-const answerText = ref("")
-const isSaving = ref(false)
+const activeTab = ref<AnswerType>("text")
+const readOnlyMediaUrl = ref<string | null>(null)
 
 async function loadQuestions() {
   questions.value = await apiFetch<Question[]>("/questions")
@@ -35,29 +34,44 @@ const nextQuestion = computed(() =>
     : null,
 )
 
+const answerType = computed(() => currentQuestion.value?.answer?.answer_type ?? null)
+
+const tabItems = computed(() =>
+  (["text", "audio", "video"] as AnswerType[]).map((value) => ({
+    label: value === "text" ? "Text" : value === "audio" ? "Audio" : "Video",
+    value,
+    disabled: answerType.value !== null && answerType.value !== value,
+  })),
+)
+
+async function loadReadOnlyMedia() {
+  if (readOnlyMediaUrl.value) {
+    URL.revokeObjectURL(readOnlyMediaUrl.value)
+    readOnlyMediaUrl.value = null
+  }
+  const answer = currentQuestion.value?.answer
+  if (!isStoryteller.value && answer && answer.answer_type !== "text") {
+    readOnlyMediaUrl.value = await fetchAnswerMediaUrl(apiFetch, answer.question_id)
+  }
+}
+
 watch(
   currentQuestion,
   (question) => {
-    answerText.value = question?.answer?.text ?? ""
+    activeTab.value = question?.answer?.answer_type ?? "text"
+    loadReadOnlyMedia()
   },
   { immediate: true },
 )
 
-async function handleSave() {
+function handleAnswerSaved(answer: Answer) {
   if (!currentQuestion.value) return
-  isSaving.value = true
-  try {
-    const answer = await apiFetch<Answer>(
-      `/questions/${currentQuestion.value.id}/answer`,
-      { method: "PUT", body: { text: answerText.value } },
-    )
-    currentQuestion.value.answer = answer
-    toast.add({ title: "Answer saved", color: "success" })
-  } catch {
-    toast.add({ title: "Could not save answer", color: "error" })
-  } finally {
-    isSaving.value = false
-  }
+  currentQuestion.value.answer = answer
+}
+
+function handleAnswerDeleted() {
+  if (!currentQuestion.value) return
+  currentQuestion.value.answer = null
 }
 </script>
 
@@ -86,20 +100,57 @@ async function handleSave() {
         </p>
       </UCard>
 
-      <UCard v-if="isStoryteller">
-        <UFormField label="Your answer" name="answer">
-          <UTextarea v-model="answerText" class="w-full" :rows="6" />
-        </UFormField>
-        <div class="flex justify-end pt-4">
-          <UButton :loading="isSaving" @click="handleSave">Save answer</UButton>
-        </div>
-      </UCard>
+      <template v-if="isStoryteller">
+        <UTabs v-model="activeTab" :items="tabItems" />
+        <p v-if="answerType" class="-mt-2 text-xs text-(--ui-text-muted)">
+          Delete your {{ answerType }} answer to switch to a different type.
+        </p>
 
-      <UCard v-else-if="currentQuestion.answer">
+        <AnswerTextEditor
+          v-if="activeTab === 'text'"
+          :question-id="currentQuestion.id"
+          :existing-answer="currentQuestion.answer ?? null"
+          @saved="handleAnswerSaved"
+          @deleted="handleAnswerDeleted"
+        />
+        <AnswerRecorder
+          v-else-if="activeTab === 'audio'"
+          mode="audio"
+          :question-id="currentQuestion.id"
+          :existing-answer="currentQuestion.answer ?? null"
+          @saved="handleAnswerSaved"
+          @deleted="handleAnswerDeleted"
+        />
+        <AnswerRecorder
+          v-else
+          mode="video"
+          :question-id="currentQuestion.id"
+          :existing-answer="currentQuestion.answer ?? null"
+          @saved="handleAnswerSaved"
+          @deleted="handleAnswerDeleted"
+        />
+      </template>
+
+      <UCard v-else-if="currentQuestion.answer?.answer_type === 'text'">
         <p class="text-sm font-medium text-(--ui-text-muted)">Answer</p>
         <p class="mt-1 whitespace-pre-wrap text-(--ui-text-highlighted)">
           {{ currentQuestion.answer.text }}
         </p>
+      </UCard>
+
+      <UCard v-else-if="currentQuestion.answer?.answer_type === 'video'">
+        <video
+          v-if="readOnlyMediaUrl"
+          :src="readOnlyMediaUrl"
+          controls
+          class="mx-auto w-full max-w-sm rounded-md"
+        />
+      </UCard>
+
+      <UCard v-else-if="currentQuestion.answer?.answer_type === 'audio'">
+        <div class="flex justify-center">
+          <audio v-if="readOnlyMediaUrl" :src="readOnlyMediaUrl" controls />
+        </div>
       </UCard>
 
       <UCard v-else :ui="{ body: 'text-center text-(--ui-text-muted)' }">

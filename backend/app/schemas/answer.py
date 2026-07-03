@@ -1,6 +1,9 @@
 from datetime import datetime
+from typing import Optional
 
 from pydantic import BaseModel, ConfigDict
+
+from app.models.answer import AnswerType
 
 
 class AnswerUpsert(BaseModel):
@@ -12,6 +15,7 @@ class AnswerRead(BaseModel):
 
     id: int
     question_id: int
-    text: str
+    answer_type: AnswerType
+    text: Optional[str] = None
     created_at: datetime
     updated_at: datetime

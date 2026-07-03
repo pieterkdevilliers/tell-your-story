@@ -1,7 +1,11 @@
 import os
+import tempfile
 import uuid
 
 os.environ.setdefault("JWT_SECRET_KEY", "test-secret-key-at-least-32-bytes-long")
+os.environ.setdefault(
+    "MEDIA_ROOT", tempfile.mkdtemp(prefix="tell-your-story-test-media-")
+)
 
 import pytest_asyncio
 from httpx import ASGITransport, AsyncClient
