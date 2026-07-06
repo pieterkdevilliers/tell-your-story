@@ -1,4 +1,5 @@
 from datetime import datetime
+from typing import Optional
 
 from pydantic import BaseModel, ConfigDict
 
@@ -10,5 +11,11 @@ class MemoirRead(BaseModel):
 
     id: int
     status: MemoirStatus
+    content: Optional[str] = None
+    has_cover_photo: bool
     created_at: datetime
     updated_at: datetime
+
+
+class MemoirContentUpdate(BaseModel):
+    content: str

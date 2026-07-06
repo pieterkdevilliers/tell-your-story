@@ -61,3 +61,7 @@ class NoUsableAnswersError(Exception):
 
 class MemoirNotFoundError(Exception):
     pass
+
+
+class NoDraftYetError(Exception):
+    pass

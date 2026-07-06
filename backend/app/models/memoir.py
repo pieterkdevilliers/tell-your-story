@@ -11,6 +11,7 @@ from app.db.base import Base
 class MemoirStatus(str, enum.Enum):
     PENDING = "pending"
     PROCESSING = "processing"
+    DRAFT_READY = "draft_ready"
     COMPLETED = "completed"
     FAILED = "failed"
 
@@ -25,7 +26,13 @@ class Memoir(Base):
     status: Mapped[MemoirStatus]
     content: Mapped[Optional[str]]
     pdf_path: Mapped[Optional[str]]
+    cover_photo_path: Mapped[Optional[str]]
+    cover_photo_content_type: Mapped[Optional[str]]
     created_at: Mapped[datetime] = mapped_column(server_default=func.now())
     updated_at: Mapped[datetime] = mapped_column(
         server_default=func.now(), onupdate=func.now()
     )
+
+    @property
+    def has_cover_photo(self) -> bool:
+        return self.cover_photo_path is not None

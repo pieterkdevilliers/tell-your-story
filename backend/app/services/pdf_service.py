@@ -1,10 +1,13 @@
 import io
+from typing import Optional
 
 from reportlab.lib.pagesizes import LETTER
 from reportlab.lib.styles import getSampleStyleSheet
-from reportlab.platypus import PageBreak, Paragraph, SimpleDocTemplate, Spacer
+from reportlab.platypus import Image, PageBreak, Paragraph, SimpleDocTemplate, Spacer
 
 styles = getSampleStyleSheet()
+
+COVER_PHOTO_MAX_SIZE = 300
 
 
 def _parse_markdown(memoir_markdown: str) -> tuple[str, list[tuple[str, list[str]]]]:
@@ -35,19 +38,36 @@ def _parse_markdown(memoir_markdown: str) -> tuple[str, list[tuple[str, list[str
     return title, chapters
 
 
-def render_memoir_pdf(memoir_markdown: str) -> bytes:
+def _cover_photo_flowable(cover_photo_bytes: bytes) -> Image:
+    image = Image(io.BytesIO(cover_photo_bytes))
+    scale = min(
+        COVER_PHOTO_MAX_SIZE / image.imageWidth,
+        COVER_PHOTO_MAX_SIZE / image.imageHeight,
+        1,
+    )
+    image.drawWidth = image.imageWidth * scale
+    image.drawHeight = image.imageHeight * scale
+    image.hAlign = "CENTER"
+    return image
+
+
+def render_memoir_pdf(
+    memoir_markdown: str, cover_photo_bytes: Optional[bytes] = None
+) -> bytes:
     """Renders the model's markdown memoir into a formatted PDF: a title
-    page, then one chapter per page break with heading + prose paragraphs.
+    page (with an optional cover photo above the title), then one chapter
+    per page break with heading + prose paragraphs.
     """
     title, chapters = _parse_markdown(memoir_markdown)
 
     buffer = io.BytesIO()
     doc = SimpleDocTemplate(buffer, pagesize=LETTER)
-    story = [
-        Spacer(1, 200),
-        Paragraph(title, styles["Title"]),
-        Paragraph("A Memoir", styles["Italic"]),
-    ]
+    story = [Spacer(1, 120 if cover_photo_bytes else 200)]
+    if cover_photo_bytes:
+        story.append(_cover_photo_flowable(cover_photo_bytes))
+        story.append(Spacer(1, 24))
+    story.append(Paragraph(title, styles["Title"]))
+    story.append(Paragraph("A Memoir", styles["Italic"]))
 
     for heading, paragraphs in chapters:
         story.append(PageBreak())

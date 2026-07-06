@@ -6,6 +6,11 @@ from starlette.concurrency import run_in_threadpool
 from app.core.config import MEDIA_ROOT
 
 
+def extension_from_content_type(content_type: str) -> str:
+    base = content_type.split(";")[0].strip()
+    return base.split("/")[-1] or "bin"
+
+
 def _resolve(storage_key: str) -> Path:
     return Path(MEDIA_ROOT) / storage_key
 
@@ -39,6 +44,23 @@ async def save_pdf(account_id: int, content: bytes) -> str:
     """
     account_dir = Path(MEDIA_ROOT) / str(account_id)
     filename = "memoir.pdf"
+    storage_key = f"{account_id}/{filename}"
+
+    def _write() -> None:
+        account_dir.mkdir(parents=True, exist_ok=True)
+        (account_dir / filename).write_bytes(content)
+
+    await run_in_threadpool(_write)
+    return storage_key
+
+
+async def save_cover_photo(account_id: int, content: bytes, extension: str) -> str:
+    """Writes the account's memoir cover photo to local disk and returns
+    its storage key. Same shape as save_pdf — always the same base
+    filename per account, so a later re-upload simply overwrites it.
+    """
+    account_dir = Path(MEDIA_ROOT) / str(account_id)
+    filename = f"cover.{extension}"
     storage_key = f"{account_id}/{filename}"
 
     def _write() -> None:

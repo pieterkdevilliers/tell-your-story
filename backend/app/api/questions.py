@@ -25,11 +25,6 @@ router = APIRouter()
 MAX_MEDIA_UPLOAD_BYTES = 100 * 1024 * 1024
 
 
-def _extension_from_content_type(content_type: str) -> str:
-    base = content_type.split(";")[0].strip()
-    return base.split("/")[-1] or "bin"
-
-
 @router.get("", response_model=list[QuestionRead])
 async def list_questions(
     current_user: User = Depends(get_current_user),
@@ -111,7 +106,7 @@ async def upsert_media_answer(
     if len(content) > MAX_MEDIA_UPLOAD_BYTES:
         raise HTTPException(status_code=status.HTTP_413_REQUEST_ENTITY_TOO_LARGE)
 
-    extension = _extension_from_content_type(file.content_type or "")
+    extension = storage_service.extension_from_content_type(file.content_type or "")
     try:
         answer = await answer_service.upsert_media_answer(
             db,
