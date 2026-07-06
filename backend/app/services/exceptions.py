@@ -53,3 +53,11 @@ class AccountNotAccessibleError(Exception):
 
 class QuestionNotFoundError(Exception):
     pass
+
+
+class NoUsableAnswersError(Exception):
+    pass
+
+
+class MemoirNotFoundError(Exception):
+    pass

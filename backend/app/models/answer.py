@@ -14,6 +14,13 @@ class AnswerType(str, enum.Enum):
     VIDEO = "video"
 
 
+class TranscriptionStatus(str, enum.Enum):
+    PENDING = "pending"
+    PROCESSING = "processing"
+    COMPLETED = "completed"
+    FAILED = "failed"
+
+
 class Answer(Base):
     __tablename__ = "answers"
 
@@ -28,6 +35,8 @@ class Answer(Base):
     text: Mapped[Optional[str]]
     media_path: Mapped[Optional[str]]
     media_content_type: Mapped[Optional[str]]
+    transcript: Mapped[Optional[str]]
+    transcription_status: Mapped[Optional[TranscriptionStatus]]
     created_at: Mapped[datetime] = mapped_column(server_default=func.now())
     updated_at: Mapped[datetime] = mapped_column(
         server_default=func.now(), onupdate=func.now()

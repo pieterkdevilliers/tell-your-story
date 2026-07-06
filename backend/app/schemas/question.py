@@ -12,6 +12,10 @@ class QuestionCreate(BaseModel):
     text: str
 
 
+class QuestionUpdate(BaseModel):
+    text: str
+
+
 class QuestionRead(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 

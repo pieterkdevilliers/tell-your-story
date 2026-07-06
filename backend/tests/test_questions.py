@@ -130,6 +130,76 @@ async def test_create_question_requires_owner(client: AsyncClient, auth_headers:
     assert response.status_code == 403
 
 
+async def test_owner_edits_question_wording(client: AsyncClient, auth_headers: dict):
+    listing = await client.get("/questions", headers=auth_headers)
+    question_id = listing.json()[0]["id"]
+    original_category = listing.json()[0]["category"]
+
+    response = await client.put(
+        f"/questions/{question_id}",
+        json={"text": "Reworded question?"},
+        headers=auth_headers,
+    )
+    assert response.status_code == 200
+    assert response.json()["text"] == "Reworded question?"
+    assert response.json()["category"] == original_category
+
+    after = await client.get("/questions", headers=auth_headers)
+    edited = next(q for q in after.json() if q["id"] == question_id)
+    assert edited["text"] == "Reworded question?"
+
+
+async def test_edit_question_requires_owner(client: AsyncClient, auth_headers: dict):
+    listing = await client.get("/questions", headers=auth_headers)
+    question_id = listing.json()[0]["id"]
+
+    member_headers = await _member_headers(client, auth_headers)
+    response = await client.put(
+        f"/questions/{question_id}",
+        json={"text": "Sneaky rewording"},
+        headers=member_headers,
+    )
+    assert response.status_code == 403
+
+
+async def test_edit_question_requires_auth(client: AsyncClient):
+    response = await client.put("/questions/1", json={"text": "No auth"})
+    assert response.status_code == 401
+
+
+async def test_edit_nonexistent_question_returns_404(
+    client: AsyncClient, auth_headers: dict
+):
+    response = await client.put(
+        "/questions/999999", json={"text": "Ghost question"}, headers=auth_headers
+    )
+    assert response.status_code == 404
+
+
+async def test_edit_other_accounts_question_returns_404(
+    client: AsyncClient, auth_headers: dict
+):
+    other_signup = await client.post(
+        "/auth/signup",
+        json={
+            "account_name": "Other Co",
+            "email": _unique_email(),
+            "password": "supersecret1",
+            "user_type": "story_requester",
+        },
+    )
+    other_headers = {"Authorization": f"Bearer {other_signup.json()['access_token']}"}
+    other_questions = await client.get("/questions", headers=other_headers)
+    other_question_id = other_questions.json()[0]["id"]
+
+    response = await client.put(
+        f"/questions/{other_question_id}",
+        json={"text": "Cross-account rewording"},
+        headers=auth_headers,
+    )
+    assert response.status_code == 404
+
+
 async def test_owner_deletes_question(client: AsyncClient, auth_headers: dict):
     listing = await client.get("/questions", headers=auth_headers)
     question_id = listing.json()[0]["id"]

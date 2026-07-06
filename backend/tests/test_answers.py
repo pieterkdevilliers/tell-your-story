@@ -1,12 +1,26 @@
 import uuid
 from pathlib import Path
 
+import pytest
 from httpx import AsyncClient
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.config import MEDIA_ROOT
 from app.models.answer import Answer
+from app.services import answer_service, transcription_service
+
+
+@pytest.fixture(autouse=True)
+def _fake_transcription(monkeypatch):
+    """Every media upload fires a real background transcription job; stub
+    the model call so ordinary media tests don't load/download a real
+    Whisper model over the network."""
+
+    async def _fake_transcribe(content: bytes) -> str:
+        return "fake transcript"
+
+    monkeypatch.setattr(transcription_service, "transcribe", _fake_transcribe)
 
 
 def _unique_email() -> str:
@@ -152,6 +166,8 @@ async def test_storyteller_uploads_audio_answer(client: AsyncClient):
     assert response.status_code == 200
     assert response.json()["answer_type"] == "audio"
     assert response.json()["text"] is None
+    assert response.json()["transcription_status"] == "pending"
+    assert response.json()["transcript"] is None
 
     media = await client.get(f"/questions/{question_id}/answer/media", headers=headers)
     assert media.status_code == 200
@@ -184,6 +200,7 @@ async def test_uploading_video_replaces_existing_audio_answer(
     assert video_response.status_code == 200
     assert video_response.json()["id"] == audio_response.json()["id"]
     assert video_response.json()["answer_type"] == "video"
+    assert video_response.json()["transcription_status"] == "pending"
     assert not audio_path.exists()
 
     media = await client.get(f"/questions/{question_id}/answer/media", headers=headers)
@@ -289,3 +306,95 @@ async def test_media_routes_reject_other_accounts_question(client: AsyncClient):
         f"/questions/{question_id_b}/answer", headers=headers_a
     )
     assert delete.status_code == 404
+
+
+async def test_transcribe_answer_completes_and_stores_transcript(
+    client: AsyncClient, db_session: AsyncSession
+):
+    storyteller = await _signup(client, "storyteller")
+    headers = _headers(storyteller["access_token"])
+    question_id = await _first_question_id(client, headers)
+
+    upload = await client.put(
+        f"/questions/{question_id}/answer/media",
+        data={"answer_type": "audio"},
+        files={"file": ("clip.webm", b"audio-bytes", "audio/webm")},
+        headers=headers,
+    )
+    answer_id = upload.json()["id"]
+    media_path = await _answer_media_path(db_session, question_id)
+
+    await answer_service.transcribe_answer(
+        db_session, answer_id, media_path, b"audio-bytes"
+    )
+
+    listing = await client.get("/questions", headers=headers)
+    question = next(q for q in listing.json() if q["id"] == question_id)
+    assert question["answer"]["transcription_status"] == "completed"
+    assert question["answer"]["transcript"] == "fake transcript"
+
+
+async def test_transcribe_answer_ignores_stale_media_path(
+    client: AsyncClient, db_session: AsyncSession
+):
+    storyteller = await _signup(client, "storyteller")
+    headers = _headers(storyteller["access_token"])
+    question_id = await _first_question_id(client, headers)
+
+    first_upload = await client.put(
+        f"/questions/{question_id}/answer/media",
+        data={"answer_type": "audio"},
+        files={"file": ("clip.webm", b"first-bytes", "audio/webm")},
+        headers=headers,
+    )
+    answer_id = first_upload.json()["id"]
+    stale_media_path = await _answer_media_path(db_session, question_id)
+
+    # Re-record before the (simulated) slow first transcription job finishes.
+    await client.put(
+        f"/questions/{question_id}/answer/media",
+        data={"answer_type": "audio"},
+        files={"file": ("clip.webm", b"second-bytes", "audio/webm")},
+        headers=headers,
+    )
+    assert await _answer_media_path(db_session, question_id) != stale_media_path
+
+    # The stale job (still keyed to the first upload's media_path) finishes
+    # late and must not clobber the second upload's pending status.
+    await answer_service.transcribe_answer(
+        db_session, answer_id, stale_media_path, b"first-bytes"
+    )
+
+    listing = await client.get("/questions", headers=headers)
+    question = next(q for q in listing.json() if q["id"] == question_id)
+    assert question["answer"]["transcription_status"] == "pending"
+    assert question["answer"]["transcript"] is None
+
+
+async def test_upsert_text_answer_clears_transcript_fields(
+    client: AsyncClient, db_session: AsyncSession
+):
+    storyteller = await _signup(client, "storyteller")
+    headers = _headers(storyteller["access_token"])
+    question_id = await _first_question_id(client, headers)
+
+    upload = await client.put(
+        f"/questions/{question_id}/answer/media",
+        data={"answer_type": "audio"},
+        files={"file": ("clip.webm", b"audio-bytes", "audio/webm")},
+        headers=headers,
+    )
+    answer_id = upload.json()["id"]
+    media_path = await _answer_media_path(db_session, question_id)
+    await answer_service.transcribe_answer(
+        db_session, answer_id, media_path, b"audio-bytes"
+    )
+
+    response = await client.put(
+        f"/questions/{question_id}/answer",
+        json={"text": "Switched to text"},
+        headers=headers,
+    )
+    assert response.status_code == 200
+    assert response.json()["transcript"] is None
+    assert response.json()["transcription_status"] is None

@@ -30,3 +30,7 @@ AWS_REGION = os.environ.get("AWS_REGION")
 # Local disk path for recorded answer media (audio/video). Production is
 # expected to swap this for S3 — see app/services/storage_service.py.
 MEDIA_ROOT = os.environ.get("MEDIA_ROOT", "./media")
+
+# Local Whisper model size used for audio/video transcription. Swappable for
+# a cloud STT provider later — see app/services/transcription_service.py.
+WHISPER_MODEL_SIZE = os.environ.get("WHISPER_MODEL_SIZE", "base")

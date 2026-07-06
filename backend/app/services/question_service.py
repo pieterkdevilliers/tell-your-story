@@ -32,6 +32,22 @@ async def create_question(
     return question
 
 
+async def update_question(
+    db: AsyncSession, account_id: int, question_id: int, text: str
+) -> Question:
+    stmt = select(Question).where(
+        Question.id == question_id, Question.account_id == account_id
+    )
+    question = (await db.execute(stmt)).scalar_one_or_none()
+    if question is None:
+        raise QuestionNotFoundError()
+
+    question.text = text
+    await db.commit()
+    await db.refresh(question)
+    return question
+
+
 async def delete_question(db: AsyncSession, account_id: int, question_id: int) -> None:
     stmt = select(Question).where(
         Question.id == question_id, Question.account_id == account_id

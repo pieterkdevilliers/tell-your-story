@@ -1,5 +1,6 @@
 from fastapi import (
     APIRouter,
+    BackgroundTasks,
     Depends,
     File,
     Form,
@@ -15,7 +16,7 @@ from app.db.session import get_db
 from app.models.answer import AnswerType
 from app.models.user import User
 from app.schemas.answer import AnswerRead, AnswerUpsert
-from app.schemas.question import QuestionCreate, QuestionRead
+from app.schemas.question import QuestionCreate, QuestionRead, QuestionUpdate
 from app.services import answer_service, question_service, storage_service
 from app.services.exceptions import QuestionNotFoundError
 
@@ -48,6 +49,21 @@ async def create_question(
     )
 
 
+@router.put("/{question_id}", response_model=QuestionRead)
+async def update_question(
+    question_id: int,
+    data: QuestionUpdate,
+    current_user: User = Depends(require_owner),
+    db: AsyncSession = Depends(get_db),
+):
+    try:
+        return await question_service.update_question(
+            db, current_user.account_id, question_id, data.text
+        )
+    except QuestionNotFoundError:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND)
+
+
 @router.delete("/{question_id}", status_code=status.HTTP_204_NO_CONTENT)
 async def delete_question(
     question_id: int,
@@ -78,6 +94,7 @@ async def upsert_text_answer(
 @router.put("/{question_id}/answer/media", response_model=AnswerRead)
 async def upsert_media_answer(
     question_id: int,
+    background_tasks: BackgroundTasks,
     answer_type: str = Form(...),
     file: UploadFile = File(...),
     current_user: User = Depends(require_storyteller),
@@ -96,7 +113,7 @@ async def upsert_media_answer(
 
     extension = _extension_from_content_type(file.content_type or "")
     try:
-        return await answer_service.upsert_media_answer(
+        answer = await answer_service.upsert_media_answer(
             db,
             current_user.account_id,
             question_id,
@@ -107,6 +124,11 @@ async def upsert_media_answer(
         )
     except QuestionNotFoundError:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND)
+
+    background_tasks.add_task(
+        answer_service.run_transcription, answer.id, answer.media_path, content
+    )
+    return answer
 
 
 @router.get("/{question_id}/answer/media")

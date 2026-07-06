@@ -31,6 +31,24 @@ async def save_media(
     return storage_key
 
 
+async def save_pdf(account_id: int, content: bytes) -> str:
+    """Writes the account's memoir PDF to local disk and returns its
+    storage key. Always the same key per account — regenerating a memoir
+    overwrites the previous PDF in place, so unlike save_media there's no
+    prior file to separately delete.
+    """
+    account_dir = Path(MEDIA_ROOT) / str(account_id)
+    filename = "memoir.pdf"
+    storage_key = f"{account_id}/{filename}"
+
+    def _write() -> None:
+        account_dir.mkdir(parents=True, exist_ok=True)
+        (account_dir / filename).write_bytes(content)
+
+    await run_in_threadpool(_write)
+    return storage_key
+
+
 async def read_media(storage_key: str) -> bytes:
     return await run_in_threadpool(_resolve(storage_key).read_bytes)
 

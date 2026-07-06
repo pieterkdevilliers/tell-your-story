@@ -59,6 +59,14 @@ function handleLogout() {
               Users
             </UButton>
             <UButton
+              to="/memoir"
+              variant="ghost"
+              size="sm"
+              class="text-white hover:bg-white/10"
+            >
+              Memoir
+            </UButton>
+            <UButton
               variant="outline"
               size="sm"
               class="border-white/50 text-white hover:bg-white/10"

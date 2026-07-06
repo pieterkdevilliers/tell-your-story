@@ -36,6 +36,32 @@ const nextQuestion = computed(() =>
 
 const answerType = computed(() => currentQuestion.value?.answer?.answer_type ?? null)
 
+const transcriptionStatus = computed(
+  () => currentQuestion.value?.answer?.transcription_status ?? null,
+)
+
+let transcriptionPollTimer: ReturnType<typeof setInterval> | null = null
+
+function stopTranscriptionPolling() {
+  if (transcriptionPollTimer) {
+    clearInterval(transcriptionPollTimer)
+    transcriptionPollTimer = null
+  }
+}
+
+watch(
+  transcriptionStatus,
+  (status) => {
+    stopTranscriptionPolling()
+    if (status === "pending" || status === "processing") {
+      transcriptionPollTimer = setInterval(loadQuestions, 3000)
+    }
+  },
+  { immediate: true },
+)
+
+onBeforeUnmount(stopTranscriptionPolling)
+
 const tabItems = computed(() =>
   (["text", "audio", "video"] as AnswerType[]).map((value) => ({
     label: value === "text" ? "Text" : value === "audio" ? "Audio" : "Video",
@@ -155,6 +181,20 @@ function handleAnswerDeleted() {
 
       <UCard v-else :ui="{ body: 'text-center text-(--ui-text-muted)' }">
         No answer yet.
+      </UCard>
+
+      <UCard v-if="currentQuestion.answer && currentQuestion.answer.answer_type !== 'text'">
+        <p class="text-sm font-medium text-(--ui-text-muted)">Transcript</p>
+        <p
+          v-if="transcriptionStatus === 'completed'"
+          class="mt-1 whitespace-pre-wrap text-(--ui-text-highlighted)"
+        >
+          {{ currentQuestion.answer.transcript }}
+        </p>
+        <p v-else-if="transcriptionStatus === 'failed'" class="mt-1 text-(--ui-error)">
+          Transcription failed.
+        </p>
+        <p v-else class="mt-1 italic text-(--ui-text-muted)">Transcribing…</p>
       </UCard>
 
       <div class="flex justify-between">

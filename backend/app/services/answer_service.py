@@ -1,11 +1,12 @@
 from typing import Optional
 
-from sqlalchemy import select
+from sqlalchemy import select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.models.answer import Answer, AnswerType
+from app.db.session import AsyncSessionLocal
+from app.models.answer import Answer, AnswerType, TranscriptionStatus
 from app.models.question import Question
-from app.services import storage_service
+from app.services import storage_service, transcription_service
 from app.services.exceptions import QuestionNotFoundError
 
 
@@ -54,6 +55,8 @@ async def upsert_text_answer(
         answer.text = text
         answer.media_path = None
         answer.media_content_type = None
+        answer.transcript = None
+        answer.transcription_status = None
 
     await db.commit()
     await db.refresh(answer)
@@ -85,6 +88,7 @@ async def upsert_media_answer(
             answer_type=answer_type,
             media_path=storage_key,
             media_content_type=content_type,
+            transcription_status=TranscriptionStatus.PENDING,
         )
         db.add(answer)
     else:
@@ -92,6 +96,8 @@ async def upsert_media_answer(
         answer.text = None
         answer.media_path = storage_key
         answer.media_content_type = content_type
+        answer.transcript = None
+        answer.transcription_status = TranscriptionStatus.PENDING
 
     await db.commit()
     await db.refresh(answer)
@@ -123,3 +129,58 @@ async def get_answer_media(
     if answer is None or not answer.media_path:
         raise QuestionNotFoundError()
     return answer
+
+
+async def _set_transcription_status(
+    db: AsyncSession,
+    answer_id: int,
+    expected_media_path: str,
+    status: TranscriptionStatus,
+    transcript: Optional[str] = None,
+) -> None:
+    # Scoped to the media_path present when transcription started — a
+    # re-record or delete gives the row a different (or no) media_path,
+    # so a slow, now-stale job's write is silently dropped here instead of
+    # clobbering a newer answer's status/transcript.
+    values = {"transcription_status": status}
+    if transcript is not None:
+        values["transcript"] = transcript
+    stmt = (
+        update(Answer)
+        .where(Answer.id == answer_id, Answer.media_path == expected_media_path)
+        .values(**values)
+    )
+    await db.execute(stmt)
+    await db.commit()
+
+
+async def transcribe_answer(
+    db: AsyncSession, answer_id: int, expected_media_path: str, content: bytes
+) -> None:
+    """Runs transcription for one answer and writes the result.
+
+    Takes an explicit session (unlike `run_transcription` below) so it can
+    be exercised directly against a test database without needing a real
+    second connection to it.
+    """
+    await _set_transcription_status(
+        db, answer_id, expected_media_path, TranscriptionStatus.PROCESSING
+    )
+    try:
+        transcript = await transcription_service.transcribe(content)
+    except Exception:
+        await _set_transcription_status(
+            db, answer_id, expected_media_path, TranscriptionStatus.FAILED
+        )
+        return
+    await _set_transcription_status(
+        db, answer_id, expected_media_path, TranscriptionStatus.COMPLETED, transcript
+    )
+
+
+async def run_transcription(
+    answer_id: int, expected_media_path: str, content: bytes
+) -> None:
+    """Background-task entrypoint invoked after a media answer is saved."""
+    async with AsyncSessionLocal() as db:
+        await transcribe_answer(db, answer_id, expected_media_path, content)

@@ -7,11 +7,15 @@ requires-python = ">=3.9"
 dependencies = [
     "aiosqlite>=0.22.1",
     "alembic>=1.16.5",
+    "anthropic>=0.116.0",
     "bcrypt<4.1",
     "boto3>=1.42.97",
     "fastapi[standard]>=0.128.8",
+    "faster-whisper>=1.2.1",
+    "onnxruntime<1.20",
     "passlib[bcrypt]>=1.7.4",
     "pyjwt>=2.13.0",
+    "reportlab>=5.0.0",
     "sqlalchemy>=2.0.46",
 ]
 

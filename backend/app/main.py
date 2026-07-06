@@ -1,7 +1,7 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-from app.api import auth, invites, questions, users
+from app.api import auth, invites, memoir, questions, users
 from app.core.config import CORS_ORIGINS
 
 app = FastAPI(title="Tell Your Story API")
@@ -18,6 +18,7 @@ app.include_router(auth.router, prefix="/auth", tags=["auth"])
 app.include_router(users.router, prefix="/users", tags=["users"])
 app.include_router(invites.router, prefix="/invites", tags=["invites"])
 app.include_router(questions.router, prefix="/questions", tags=["questions"])
+app.include_router(memoir.router, prefix="/memoir", tags=["memoir"])
 
 
 @app.get("/")

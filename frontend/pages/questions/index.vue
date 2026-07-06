@@ -11,6 +11,9 @@ const questions = ref<Question[]>([])
 const addingCategory = ref<QuestionCategory | null>(null)
 const newQuestionText = ref("")
 const isSubmitting = ref(false)
+const editingQuestion = ref<Question | null>(null)
+const editQuestionText = ref("")
+const isEditSubmitting = ref(false)
 
 const isOwner = computed(() => auth.user?.role === "owner")
 
@@ -46,6 +49,29 @@ async function handleAdd() {
     toast.add({ title: "Could not add question", color: "error" })
   } finally {
     isSubmitting.value = false
+  }
+}
+
+function openEdit(question: Question) {
+  editingQuestion.value = question
+  editQuestionText.value = question.text
+}
+
+async function handleEdit() {
+  if (!editingQuestion.value || !editQuestionText.value.trim()) return
+  isEditSubmitting.value = true
+  try {
+    await apiFetch(`/questions/${editingQuestion.value.id}`, {
+      method: "PUT",
+      body: { text: editQuestionText.value.trim() },
+    })
+    editingQuestion.value = null
+    await loadQuestions()
+    toast.add({ title: "Question updated", color: "success" })
+  } catch {
+    toast.add({ title: "Could not update question", color: "error" })
+  } finally {
+    isEditSubmitting.value = false
   }
 }
 
@@ -111,15 +137,22 @@ await loadQuestions()
               Answered
             </UBadge>
           </span>
-          <UButton
-            v-if="isOwner"
-            color="error"
-            variant="ghost"
-            size="sm"
-            icon="i-lucide-trash-2"
-            class="shrink-0"
-            @click.stop="handleDelete(question)"
-          />
+          <div v-if="isOwner" class="flex shrink-0 gap-1">
+            <UButton
+              color="neutral"
+              variant="ghost"
+              size="sm"
+              icon="i-lucide-pencil"
+              @click.stop="openEdit(question)"
+            />
+            <UButton
+              color="error"
+              variant="ghost"
+              size="sm"
+              icon="i-lucide-trash-2"
+              @click.stop="handleDelete(question)"
+            />
+          </div>
         </li>
       </ul>
     </UCard>
@@ -139,6 +172,26 @@ await loadQuestions()
               Cancel
             </UButton>
             <UButton :loading="isSubmitting" @click="handleAdd">Add question</UButton>
+          </div>
+        </div>
+      </template>
+    </UModal>
+
+    <UModal
+      :open="!!editingQuestion"
+      title="Edit question"
+      @update:open="(v) => !v && (editingQuestion = null)"
+    >
+      <template #body>
+        <div class="flex flex-col gap-4">
+          <UFormField label="Question" name="text" required>
+            <UTextarea v-model="editQuestionText" class="w-full" autofocus />
+          </UFormField>
+          <div class="flex justify-end gap-2 pt-2">
+            <UButton color="neutral" variant="ghost" @click="editingQuestion = null">
+              Cancel
+            </UButton>
+            <UButton :loading="isEditSubmitting" @click="handleEdit">Save changes</UButton>
           </div>
         </div>
       </template>
