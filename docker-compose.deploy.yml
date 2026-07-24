@@ -1,9 +1,6 @@
 services:
   backend:
     image: pieterkdevilliers/tell-your-story-backend:latest
-    build:
-      context: ./backend
-      target: production
     volumes:
       - backend_db:/app/data
       - backend_media:/app/media
@@ -25,9 +22,6 @@ services:
 
   frontend:
     image: pieterkdevilliers/tell-your-story-frontend:latest
-    build:
-      context: ./frontend
-      target: production
     ports:
       - "3014:3014"
     environment:

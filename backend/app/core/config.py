@@ -27,9 +27,16 @@ INVITE_TOKEN_EXPIRE_MINUTES = int(
 SES_FROM_EMAIL = os.environ.get("SES_FROM_EMAIL")
 AWS_REGION = os.environ.get("AWS_REGION")
 
-# Local disk path for recorded answer media (audio/video). Production is
-# expected to swap this for S3 — see app/services/storage_service.py.
+# Local disk path for recorded answer media (audio/video), used whenever
+# S3_BUCKET_NAME is unset. See app/services/storage_service.py.
 MEDIA_ROOT = os.environ.get("MEDIA_ROOT", "./media")
+
+# Optional: if unset, storage_service reads/writes media (answers, memoir
+# PDFs, cover photos) on local disk under MEDIA_ROOT. Set it to switch to
+# S3 — credentials/region are the same AWS_REGION / AWS_ACCESS_KEY_ID /
+# AWS_SECRET_ACCESS_KEY already used for SES above, read automatically by
+# boto3's standard credential chain.
+S3_BUCKET_NAME = os.environ.get("S3_BUCKET_NAME")
 
 # Local Whisper model size used for audio/video transcription. Swappable for
 # a cloud STT provider later — see app/services/transcription_service.py.
