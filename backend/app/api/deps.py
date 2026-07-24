@@ -49,3 +49,17 @@ def require_storyteller(current_user: User = Depends(get_current_user)) -> User:
             detail="Only the storyteller can answer questions",
         )
     return current_user
+
+
+def require_owner_or_storyteller(
+    current_user: User = Depends(get_current_user),
+) -> User:
+    if (
+        current_user.role != AccountRole.OWNER
+        and current_user.user_type != UserType.STORYTELLER
+    ):
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Only the account owner or storyteller can view users",
+        )
+    return current_user

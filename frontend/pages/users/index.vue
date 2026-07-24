@@ -14,6 +14,12 @@ const isInviteOpen = ref(false)
 const editingUser = ref<CurrentUser | null>(null)
 
 const isOwner = computed(() => auth.user?.role === "owner")
+const canViewUsers = computed(
+  () => isOwner.value || auth.user?.user_type === "storyteller"
+)
+if (!canViewUsers.value) {
+  await navigateTo("/")
+}
 const hasStoryteller = computed(() => users.value.some((u) => u.user_type === "storyteller"))
 const isStoryRequester = computed(() => auth.user?.user_type === "story_requester")
 const canInvite = computed(() => auth.user?.user_type !== "viewer")
@@ -108,8 +114,10 @@ async function handleInvite(payload: { email: string; user_type: UserType }) {
   }
 }
 
-await loadUsers()
-await loadInvites()
+if (canViewUsers.value) {
+  await loadUsers()
+  await loadInvites()
+}
 </script>
 
 <template>

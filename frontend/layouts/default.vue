@@ -5,6 +5,9 @@ const auth = useAuthStore()
 const { apiFetch } = useApi()
 
 const isStoryteller = computed(() => auth.user?.user_type === "storyteller")
+const canViewUsers = computed(
+  () => auth.user?.role === "owner" || auth.user?.user_type === "storyteller"
+)
 
 async function handleTellYourStory() {
   const questions = await apiFetch<Question[]>("/questions")
@@ -51,6 +54,7 @@ function handleLogout() {
               Questions
             </UButton>
             <UButton
+              v-if="canViewUsers"
               to="/users"
               variant="ghost"
               size="sm"

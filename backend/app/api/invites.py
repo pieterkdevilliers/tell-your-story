@@ -1,7 +1,7 @@
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.api.deps import get_current_user
+from app.api.deps import get_current_user, require_owner_or_storyteller
 from app.core.security import create_access_token
 from app.db.session import get_db
 from app.models.account import Account
@@ -57,7 +57,7 @@ async def create_invite(
 
 @router.get("", response_model=list[InviteRead])
 async def list_invites(
-    current_user: User = Depends(get_current_user),
+    current_user: User = Depends(require_owner_or_storyteller),
     db: AsyncSession = Depends(get_db),
 ):
     return await invite_service.list_invites(db, current_user.account_id)

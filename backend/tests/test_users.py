@@ -240,6 +240,37 @@ async def test_last_owner_cannot_be_deleted(client: AsyncClient, auth_headers: d
     assert len(listing.json()) == 1
 
 
+async def test_storyteller_member_can_view_users(
+    client: AsyncClient, auth_headers: dict
+):
+    storyteller = await _create_member(client, auth_headers, user_type="storyteller")
+    login = await client.post(
+        "/auth/login",
+        json={"email": storyteller["email"], "password": "supersecret1"},
+    )
+    headers = {"Authorization": f"Bearer {login.json()['access_token']}"}
+
+    response = await client.get("/users", headers=headers)
+    assert response.status_code == 200
+
+
+async def test_viewer_cannot_view_users_or_invites(
+    client: AsyncClient, auth_headers: dict
+):
+    await _create_member(client, auth_headers, user_type="storyteller")
+    viewer = await _create_member(client, auth_headers, user_type="viewer")
+    login = await client.post(
+        "/auth/login", json={"email": viewer["email"], "password": "supersecret1"}
+    )
+    headers = {"Authorization": f"Bearer {login.json()['access_token']}"}
+
+    users_response = await client.get("/users", headers=headers)
+    assert users_response.status_code == 403
+
+    invites_response = await client.get("/invites", headers=headers)
+    assert invites_response.status_code == 403
+
+
 async def test_last_owner_guard_allows_deletion_with_second_owner(
     client: AsyncClient, auth_headers: dict
 ):

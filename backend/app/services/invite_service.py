@@ -99,5 +99,12 @@ async def accept_invite(db: AsyncSession, token: str, password: str) -> User:
 
 
 async def list_invites(db: AsyncSession, account_id: int) -> list[Invite]:
-    stmt = select(Invite).where(Invite.account_id == account_id)
+    """Only invites that are still actionable — accepted or expired ones
+    aren't "pending" anymore, which is how the frontend labels this list.
+    """
+    stmt = select(Invite).where(
+        Invite.account_id == account_id,
+        Invite.accepted_at.is_(None),
+        Invite.expires_at > datetime.utcnow(),
+    )
     return list((await db.execute(stmt)).scalars().all())

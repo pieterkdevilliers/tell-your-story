@@ -1,7 +1,7 @@
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.api.deps import get_current_user, require_owner
+from app.api.deps import get_current_user, require_owner, require_owner_or_storyteller
 from app.db.session import get_db
 from app.models.user import AccountRole, User
 from app.schemas.user import UserCreate, UserRead, UserUpdate
@@ -21,7 +21,7 @@ router = APIRouter()
 
 @router.get("", response_model=list[UserRead])
 async def list_users(
-    current_user: User = Depends(get_current_user),
+    current_user: User = Depends(require_owner_or_storyteller),
     db: AsyncSession = Depends(get_db),
 ):
     return await user_service.list_users(db, current_user.account_id)
@@ -30,7 +30,7 @@ async def list_users(
 @router.get("/{user_id}", response_model=UserRead)
 async def get_user(
     user_id: int,
-    current_user: User = Depends(get_current_user),
+    current_user: User = Depends(require_owner_or_storyteller),
     db: AsyncSession = Depends(get_db),
 ):
     try:

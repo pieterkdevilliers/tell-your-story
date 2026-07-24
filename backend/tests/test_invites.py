@@ -369,3 +369,48 @@ async def test_list_invites_scoped_to_account(client: AsyncClient):
     )
     assert len(listing_a.json()) == 1
     assert len(listing_b.json()) == 0
+
+
+async def test_accepted_invite_no_longer_lists_as_pending(
+    client: AsyncClient, captured_emails
+):
+    requester = await _signup(client, "story_requester")
+    headers = _headers(requester["access_token"])
+
+    await client.post(
+        "/invites",
+        json={"email": _unique_email(), "user_type": "storyteller"},
+        headers=headers,
+    )
+    token = _extract_token(captured_emails[-1]["body"])
+
+    before = await client.get("/invites", headers=headers)
+    assert len(before.json()) == 1
+
+    accept = await client.post(
+        "/invites/accept", json={"token": token, "password": "supersecret1"}
+    )
+    assert accept.status_code == 200
+
+    after = await client.get("/invites", headers=headers)
+    assert after.json() == []
+
+
+async def test_expired_invite_no_longer_lists_as_pending(
+    client: AsyncClient, db_session: AsyncSession, captured_emails
+):
+    requester = await _signup(client, "story_requester")
+    headers = _headers(requester["access_token"])
+
+    await client.post(
+        "/invites",
+        json={"email": _unique_email(), "user_type": "storyteller"},
+        headers=headers,
+    )
+
+    rows = (await db_session.execute(select(Invite))).scalars().all()
+    rows[0].expires_at = datetime.utcnow() - timedelta(minutes=1)
+    await db_session.commit()
+
+    listing = await client.get("/invites", headers=headers)
+    assert listing.json() == []
