@@ -8,6 +8,7 @@ from app.core.security import generate_reset_token, hash_password, hash_reset_to
 from app.models.account import Account
 from app.models.invite import Invite
 from app.models.user import AccountRole, User, UserType
+from app.services import email_templates
 from app.services.email_service import send_email
 from app.services.exceptions import (
     EmailAlreadyExistsError,
@@ -41,14 +42,15 @@ async def create_invite(
 
     account = await db.get(Account, account_id)
     invite_link = f"{FRONTEND_URL}/invite/{raw_token}"
-    label = user_type.value.replace("_", " ")
-    body = (
-        f"You've been invited to join {account.name} on Tell Your Story "
-        f"as a {label}.\n\n"
-        f"Accept your invite: {invite_link}\n\n"
-        f"This link expires in {INVITE_TOKEN_EXPIRE_MINUTES} minutes."
+    template = (
+        email_templates.invite_storyteller
+        if user_type == UserType.STORYTELLER
+        else email_templates.invite_viewer
     )
-    await send_email(email, f"You're invited to join {account.name}", body)
+    subject, html_body, text_body = template(
+        account.name, invite_link, INVITE_TOKEN_EXPIRE_MINUTES
+    )
+    await send_email(email, subject, text_body, html_body=html_body)
     return invite
 
 

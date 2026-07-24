@@ -3,7 +3,8 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.core.security import hash_password
 from app.models.account import Account
 from app.models.user import AccountRole, User, UserType
-from app.services import question_service
+from app.services import email_templates, question_service
+from app.services.email_service import send_email
 
 
 async def create_account_with_owner(
@@ -30,4 +31,13 @@ async def create_account_with_owner(
     await db.commit()
     await db.refresh(account)
     await db.refresh(owner)
+
+    template = (
+        email_templates.signup_confirmation_storyteller
+        if user_type == UserType.STORYTELLER
+        else email_templates.signup_confirmation_story_requester
+    )
+    subject, html_body, text_body = template(account.name)
+    await send_email(email, subject, text_body, html_body=html_body)
+
     return account, owner

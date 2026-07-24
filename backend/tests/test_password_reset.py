@@ -18,8 +18,10 @@ def _unique_email() -> str:
 def captured_emails(monkeypatch):
     calls = []
 
-    async def fake_send_email(to_email, subject, body):
-        calls.append({"to": to_email, "subject": subject, "body": body})
+    async def fake_send_email(to_email, subject, body, html_body=None):
+        calls.append(
+            {"to": to_email, "subject": subject, "body": body, "html_body": html_body}
+        )
 
     monkeypatch.setattr(
         "app.services.password_reset_service.send_email", fake_send_email

@@ -8,6 +8,7 @@ from app.core.config import FRONTEND_URL, PASSWORD_RESET_TOKEN_EXPIRE_MINUTES
 from app.core.security import generate_reset_token, hash_password, hash_reset_token
 from app.models.password_reset_token import PasswordResetToken
 from app.models.user import User
+from app.services import email_templates
 from app.services.email_service import send_email
 from app.services.exceptions import InvalidResetTokenError
 
@@ -30,14 +31,10 @@ async def request_password_reset(db: AsyncSession, email: str) -> None:
 
     reset_link = f"{FRONTEND_URL}/reset-password?token={raw_token}"
     account_names = ", ".join(user.account.name for user in users)
-    body = (
-        "We received a request to reset your password.\n\n"
-        f"This will reset your password for: {account_names}.\n\n"
-        f"Reset your password: {reset_link}\n\n"
-        f"This link expires in {PASSWORD_RESET_TOKEN_EXPIRE_MINUTES} minutes. "
-        "If you didn't request this, you can safely ignore this email."
+    subject, html_body, text_body = email_templates.password_reset(
+        account_names, reset_link, PASSWORD_RESET_TOKEN_EXPIRE_MINUTES
     )
-    await send_email(email, "Reset your password", body)
+    await send_email(email, subject, text_body, html_body=html_body)
 
 
 async def confirm_password_reset(
